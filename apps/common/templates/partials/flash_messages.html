@@ -1,7 +1,11 @@
 {% if messages %}
-<div class="space-y-2 mb-4">
+<div class="js-toast-queue hidden" aria-hidden="true">
   {% for message in messages %}
-  <div class="rounded p-3 text-sm {% if message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">{{ message }}</div>
+  <div
+    class="js-toast-item"
+    data-toast-message="{{ message|escape }}"
+    data-toast-tags="{{ message.tags|default:'' }}"
+    data-toast-index="{{ forloop.counter0 }}"></div>
   {% endfor %}
 </div>
 {% endif %}

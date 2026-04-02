@@ -16,7 +16,14 @@
                     class="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">Identity</span>
             </div>
 
-            <form method="post" class="space-y-4">
+            <form
+                method="post"
+                action="{% url 'accounts:profile' %}"
+                hx-post="{% url 'accounts:profile' %}"
+                hx-target="#content"
+                hx-swap="innerHTML"
+                hx-push-url="true"
+                class="space-y-4">
                 {% csrf_token %}
                 <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <div>
