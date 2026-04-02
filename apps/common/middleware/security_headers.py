@@ -7,5 +7,5 @@ class SecurityHeadersMiddleware:
         response['X-Content-Type-Options'] = 'nosniff'
         response['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         response['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
-        response['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline' unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+        response['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
         return response

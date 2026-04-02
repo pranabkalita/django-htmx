@@ -15,7 +15,7 @@
       <nav class="space-y-4 text-sm">
         <div class="space-y-0.5">
           <p class="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">General</p>
-          <a class="block rounded-lg px-3 py-2 hover:bg-slate-100 {% if request.path == '/account/dashboard/' %}bg-emerald-50 font-medium text-emerald-700{% else %}text-slate-700{% endif %}" href="{% url 'accounts:dashboard' %}" hx-get="{% url 'accounts:dashboard' %}" hx-target="#content" hx-push-url="true">Dashboard</a>
+          <a class="block rounded-lg px-3 py-2 hover:bg-slate-100 {% if request.resolver_match.view_name == 'accounts:dashboard' %}bg-emerald-50 font-medium text-emerald-700{% else %}text-slate-700{% endif %}" href="{% url 'accounts:dashboard' %}" hx-get="{% url 'accounts:dashboard' %}" hx-target="#content" hx-push-url="true">Dashboard</a>
         </div>
 
       </nav>
@@ -66,22 +66,4 @@
   </div>
 </div>
 
-<script>
-  (function () {
-    var btn = document.getElementById('sidebar-toggle');
-    var sidebar = document.getElementById('auth-sidebar');
-    if (!btn || !sidebar) return;
-    btn.addEventListener('click', function () {
-      var hidden = sidebar.classList.contains('-translate-x-[120%]');
-      if (hidden) {
-        sidebar.classList.remove('-translate-x-[120%]');
-      } else {
-        sidebar.classList.add('-translate-x-[120%]');
-      }
-    });
-    document.body.addEventListener('htmx:afterSwap', function () {
-      if (window.innerWidth < 768) sidebar.classList.add('-translate-x-[120%]');
-    });
-  })();
-</script>
 {% endblock %}

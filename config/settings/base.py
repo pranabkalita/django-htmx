@@ -1,4 +1,6 @@
 from pathlib import Path
+import base64
+import hashlib
 
 import environ
 
@@ -6,7 +8,8 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 env = environ.Env()
 environ.Env.read_env(BASE_DIR / '.env')
 
-SECRET_KEY = env('DJANGO_SECRET_KEY', default='unsafe-dev-key')
+SECRET_KEY = env('DJANGO_SECRET_KEY')
+FERNET_KEY = env('FERNET_KEY', default=base64.urlsafe_b64encode(hashlib.sha256(SECRET_KEY.encode()).digest()).decode())
 DEBUG = env.bool('DJANGO_DEBUG', default=False)
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['127.0.0.1', 'localhost'])
 CSRF_TRUSTED_ORIGINS = env.list('DJANGO_CSRF_TRUSTED_ORIGINS', default=[])
@@ -55,7 +58,13 @@ ASGI_APPLICATION = 'config.asgi.application'
 
 DB_ENGINE = env('DB_ENGINE', default='django.db.backends.sqlite3')
 if DB_ENGINE == 'django.db.backends.sqlite3':
-    DATABASES = {'default': {'ENGINE': DB_ENGINE, 'NAME': BASE_DIR / 'db.sqlite3'}}
+    DATABASES = {
+        'default': {
+            'ENGINE': DB_ENGINE,
+            'NAME': BASE_DIR / 'db.sqlite3',
+            'CONN_MAX_AGE': env.int('DB_CONN_MAX_AGE', default=60),
+        }
+    }
 else:
     DATABASES = {
         'default': {
@@ -65,6 +74,7 @@ else:
             'PASSWORD': env('DB_PASSWORD', default=''),
             'HOST': env('DB_HOST', default='127.0.0.1'),
             'PORT': env('DB_PORT', default='3306'),
+            'CONN_MAX_AGE': env.int('DB_CONN_MAX_AGE', default=60),
             'OPTIONS': {'charset': 'utf8mb4'},
         }
     }
@@ -117,7 +127,7 @@ if MAIL_DRIVER == 'smtp':
     EMAIL_USE_SSL = env.bool('SMTP_USE_SSL', default=False)
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
-    EMAIL_FILE_PATH = BASE_DIR / 'logs' / 'mail'
+    EMAIL_FILE_PATH = Path(env('MAIL_LOG_PATH', default=str(BASE_DIR / 'logs' / 'mail')))
 
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default=env('REDIS_URL', default='redis://127.0.0.1:6379/0'))
 CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default=env('REDIS_URL', default='redis://127.0.0.1:6379/0'))

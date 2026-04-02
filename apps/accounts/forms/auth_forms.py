@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.password_validation import validate_password
 
 
 class RegisterForm(forms.Form):
@@ -7,6 +8,11 @@ class RegisterForm(forms.Form):
     email = forms.EmailField()
     password = forms.CharField(widget=forms.PasswordInput)
     confirm_password = forms.CharField(widget=forms.PasswordInput)
+
+    def clean_password(self):
+        password = self.cleaned_data.get('password')
+        validate_password(password)
+        return password
 
     def clean(self):
         data = super().clean()
@@ -28,6 +34,11 @@ class ForgotPasswordForm(forms.Form):
 class ResetPasswordForm(forms.Form):
     new_password = forms.CharField(widget=forms.PasswordInput)
     confirm_new_password = forms.CharField(widget=forms.PasswordInput)
+
+    def clean_new_password(self):
+        password = self.cleaned_data.get('new_password')
+        validate_password(password)
+        return password
 
     def clean(self):
         data = super().clean()

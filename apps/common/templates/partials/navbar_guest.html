@@ -19,6 +19,10 @@
       <a href="{% url 'accounts:register' %}" hx-get="{% url 'accounts:register' %}" hx-target="#content" hx-push-url="true"
          class="rounded-lg px-3 py-2 text-slate-500 hover:text-slate-700">Create Account</a>
       {% endif %}
+      <a href="{% url 'pages:about' %}" hx-get="{% url 'pages:about' %}" hx-target="#content" hx-push-url="true"
+        class="rounded-lg px-3 py-2 text-slate-500 hover:text-slate-700">About</a>
+      <a href="{% url 'pages:contact' %}" hx-get="{% url 'pages:contact' %}" hx-target="#content" hx-push-url="true"
+        class="rounded-lg px-3 py-2 text-slate-500 hover:text-slate-700">Contact</a>
     </div>
   </nav>
 </header>

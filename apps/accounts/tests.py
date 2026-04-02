@@ -1,5 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
+from datetime import timedelta
 
 import pyotp
 
@@ -94,6 +96,7 @@ class AuthSmokeTests(TestCase):
 
         session = self.client.session
         session['pre_2fa_user_id'] = user.id
+        session['pre_2fa_expires_at'] = int((timezone.now() + timedelta(minutes=5)).timestamp())
         session.save()
 
         otp = pyotp.TOTP(twofa.secret).now()

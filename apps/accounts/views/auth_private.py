@@ -6,22 +6,35 @@ from django.urls import reverse
 
 from apps.accounts.forms.profile_forms import ProfileForm
 from apps.accounts.forms.twofa_forms import OTPVerifyForm
+from apps.accounts.services.auth_service import record_security_event
+from apps.accounts.services.user_service import deactivate_user, update_profile
 from apps.accounts.services.twofa_service import generate_secret, get_or_create_twofa, provisioning_uri, qr_data_uri, verify_otp
 from apps.common.views.rendering import htmx_redirect, render_htmx
 
 
+def _client_ip(request):
+    forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if forwarded_for:
+        return forwarded_for.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR')
+
+
 @login_required
 def dashboard(request):
-    return render_htmx(request, 'accounts/dashboard.html', 'accounts/partials/dashboard_content.html')
+    twofa = getattr(request.user, 'twofa_settings', None)
+    return render_htmx(
+        request,
+        'accounts/dashboard.html',
+        'accounts/partials/dashboard_content.html',
+        {'twofa_enabled': bool(twofa and twofa.is_enabled)},
+    )
 
 
 @login_required
 def profile(request):
     form = ProfileForm(request.POST or None, initial={'first_name': request.user.first_name, 'last_name': request.user.last_name})
     if request.method == 'POST' and form.is_valid():
-        request.user.first_name = form.cleaned_data['first_name']
-        request.user.last_name = form.cleaned_data['last_name']
-        request.user.save(update_fields=['first_name', 'last_name'])
+        update_profile(request.user, form.cleaned_data['first_name'], form.cleaned_data['last_name'])
         messages.success(request, 'Profile updated.')
         return htmx_redirect(request, reverse('accounts:profile'))
     return render_htmx(request, 'accounts/account/profile.html', 'accounts/account/partials/profile_content.html', {'form': form})
@@ -55,6 +68,7 @@ def twofa_settings(request):
         if verify_otp(twofa.secret, otp_form.cleaned_data['otp_code']):
             twofa.is_enabled = True
             twofa.save(update_fields=['is_enabled'])
+            record_security_event(event_type='twofa_enabled', user=request.user, ip_address=_client_ip(request))
             messages.success(request, '2FA enabled.')
             return htmx_redirect(request, reverse('accounts:twofa_settings'))
         messages.error(request, 'Invalid OTP code.')
@@ -64,6 +78,7 @@ def twofa_settings(request):
             twofa.is_enabled = False
             twofa.secret = ''
             twofa.save(update_fields=['is_enabled', 'secret'])
+            record_security_event(event_type='twofa_disabled', user=request.user, ip_address=_client_ip(request))
             messages.success(request, '2FA disabled.')
             return htmx_redirect(request, reverse('accounts:twofa_settings'))
         messages.error(request, 'Invalid OTP code.')
@@ -79,8 +94,19 @@ def twofa_settings(request):
 @login_required
 def deactivate_account(request):
     if request.method == 'POST':
-        request.user.is_active = False
-        request.user.save(update_fields=['is_active'])
-        logout(request)
-        return htmx_redirect(request, reverse('accounts:login'))
+        password = request.POST.get('password', '')
+        if not request.user.check_password(password):
+            messages.error(request, 'Incorrect password. Account not deactivated.')
+        else:
+            deactivate_user(request.user)
+            record_security_event(event_type='account_deactivated', user=request.user, ip_address=_client_ip(request))
+            logout(request)
+            return htmx_redirect(request, reverse('accounts:login'))
     return render_htmx(request, 'accounts/account/deactivate.html', 'accounts/account/partials/deactivate_content.html')
+
+
+@login_required
+def logout_view(request):
+    if request.method == 'POST':
+        logout(request)
+    return htmx_redirect(request, reverse('accounts:login'))

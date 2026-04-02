@@ -11,6 +11,9 @@ class EmailVerificationToken(models.Model):
     expires_at = models.DateTimeField()
     used_at = models.DateTimeField(null=True, blank=True)
 
+    def __str__(self):
+        return f'EmailVerificationToken({self.user_id})'
+
     @classmethod
     def default_expiry(cls):
         return timezone.now() + timedelta(hours=24)
@@ -21,3 +24,6 @@ class PasswordResetToken(models.Model):
     token = models.CharField(max_length=128, unique=True)
     expires_at = models.DateTimeField()
     used_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f'PasswordResetToken({self.user_id})'
