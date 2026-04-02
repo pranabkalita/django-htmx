@@ -2,10 +2,12 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.timezone import now
 from django_ratelimit.decorators import ratelimit
 
 from apps.accounts.forms.auth_forms import ForgotPasswordForm, LoginForm, RegisterForm, ResetPasswordForm
@@ -31,7 +33,27 @@ def register(request):
             )
             token = build_email_verification(user)
             verify_url = request.build_absolute_uri(reverse('accounts:verify_email', kwargs={'token': token.token}))
-            send_email_task.delay('Verify your email', f'Verify here: {verify_url}', [user.email])
+            site_url = request.build_absolute_uri('/').rstrip('/')
+            text_body = (
+                f'Welcome to FastAuth, {user.first_name or user.email}.\n\n'
+                f'Verify your email address to activate your account:\n{verify_url}\n\n'
+                f'This link expires in 24 hours.\n\n'
+                f'If you did not create an account, you can safely ignore this email.\n\n'
+                f'FastAuth\n{site_url}\nSupport: {settings.DEFAULT_FROM_EMAIL}'
+            )
+            send_email_task.delay(
+                'Verify your account - FastAuth',
+                text_body,
+                [user.email],
+                'accounts/emails/verify_email.html',
+                {
+                    'first_name': user.first_name or user.email,
+                    'verify_url': verify_url,
+                    'site_url': site_url,
+                    'support_email': settings.DEFAULT_FROM_EMAIL,
+                    'year': now().year,
+                },
+            )
             messages.success(request, 'Registration complete. Verify your email before login.')
             return htmx_redirect(request, reverse('accounts:login'))
     return render_htmx(request, 'accounts/register.html', 'accounts/partials/register_content.html', {'form': form})
@@ -78,7 +100,28 @@ def forgot_password(request):
         if user:
             token = build_password_reset(user)
             reset_url = request.build_absolute_uri(reverse('accounts:reset_password', kwargs={'token': token.token}))
-            send_email_task.delay('Reset password', f'Reset link: {reset_url}', [user.email])
+            site_url = request.build_absolute_uri('/').rstrip('/')
+            reset_text_body = (
+                f'Hi {user.first_name or user.email},\n\n'
+                f'We received a request to reset your FastAuth password.\n\n'
+                f'Reset your password using this link:\n{reset_url}\n\n'
+                f'This link expires in 1 hour.\n\n'
+                f'If you did not request a password reset, you can safely ignore this email.\n\n'
+                f'FastAuth\n{site_url}\nSupport: {settings.DEFAULT_FROM_EMAIL}'
+            )
+            send_email_task.delay(
+                'Reset your password - FastAuth',
+                reset_text_body,
+                [user.email],
+                'accounts/emails/reset_password.html',
+                {
+                    'first_name': user.first_name or user.email,
+                    'reset_url': reset_url,
+                    'site_url': site_url,
+                    'support_email': settings.DEFAULT_FROM_EMAIL,
+                    'year': now().year,
+                },
+            )
         messages.success(request, 'If the email exists, a reset link has been sent.')
         return htmx_redirect(request, reverse('accounts:login'))
     return render_htmx(request, 'accounts/forgot_password.html', 'accounts/partials/forgot_password_content.html', {'form': form})

@@ -1,1 +1,71 @@
-<h1 class="text-3xl font-bold">Landing Page</h1>
+<div class="mx-auto max-w-6xl px-2 py-6">
+  <div class="rounded-3xl bg-gradient-to-br from-white to-emerald-50 p-8 md:p-12">
+    <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
+
+      <!-- Left column -->
+      <div class="flex flex-col justify-between gap-8">
+        <div>
+          <span class="inline-block rounded-full border border-emerald-600 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-emerald-700">Secure Identity Platform</span>
+          <h1 class="mt-4 text-5xl font-extrabold leading-tight text-slate-900">
+            Modern account<br>security
+            <span class="text-emerald-600"> for<br>modern teams</span>
+          </h1>
+          <p class="mt-4 max-w-md text-base text-slate-500">
+            FastAuth gives you reliable email verification, session control, and two-factor protection in one clean workflow.
+          </p>
+          <div class="mt-6 flex flex-wrap gap-3">
+            <a href="{% url 'accounts:register' %}" hx-get="{% url 'accounts:register' %}" hx-target="#content" hx-push-url="true"
+               class="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-700">Get Started</a>
+            <a href="{% url 'accounts:login' %}" hx-get="{% url 'accounts:login' %}" hx-target="#content" hx-push-url="true"
+               class="rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">I Already Have an Account</a>
+          </div>
+        </div>
+
+        <!-- Feature mini-cards -->
+        <div class="grid grid-cols-3 gap-3">
+          <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+            <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Verification</p>
+            <p class="mt-1 text-sm font-semibold text-slate-800">Email-first onboarding</p>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+            <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Protection</p>
+            <p class="mt-1 text-sm font-semibold text-slate-800">2FA + backup codes</p>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+            <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Control</p>
+            <p class="mt-1 text-sm font-semibold text-slate-800">Session management</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right column -->
+      <div class="flex items-start justify-center lg:justify-end">
+        <div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p class="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Why Teams Pick FastAuth</p>
+          <ul class="mt-4 space-y-3">
+            <li class="flex items-start gap-2 text-sm text-slate-700">
+              <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-500"></span>
+              Designed for secure defaults with low setup friction.
+            </li>
+            <li class="flex items-start gap-2 text-sm text-slate-700">
+              <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-500"></span>
+              Clear account lifecycle from register to recovery.
+            </li>
+            <li class="flex items-start gap-2 text-sm text-slate-700">
+              <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-500"></span>
+              Audit-ready actions for sensitive auth events.
+            </li>
+          </ul>
+          <div class="mt-6 border-t border-slate-100 pt-5">
+            <p class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-slate-400">Ready to continue?</p>
+            <a href="{% url 'accounts:register' %}" hx-get="{% url 'accounts:register' %}" hx-target="#content" hx-push-url="true"
+               class="block w-full rounded-xl bg-emerald-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-emerald-500">
+              Create your account
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

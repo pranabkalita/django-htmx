@@ -1,16 +1,24 @@
-<header class="border-b bg-white">
-  <nav class="container mx-auto px-4 py-4 flex items-center justify-between">
-    <a class="font-semibold" href="{% url 'pages:landing' %}" hx-get="{% url 'pages:landing' %}" hx-target="#content" hx-push-url="true">SecureApp</a>
-    <div class="space-x-4">
-      <a href="{% url 'pages:landing' %}" hx-get="{% url 'pages:landing' %}" hx-target="#content" hx-push-url="true">Home</a>
+<header class="border-b border-slate-200 bg-white">
+  <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+    <a class="flex items-center gap-2.5" href="{% url 'pages:landing' %}" hx-get="{% url 'pages:landing' %}" hx-target="#content" hx-push-url="true">
+      <div class="grid h-9 w-9 place-items-center rounded-full bg-emerald-600 text-sm font-bold text-white">FA</div>
+      <div>
+        <p class="text-sm font-semibold leading-none text-slate-900">FastAuth</p>
+        <p class="text-xs text-slate-500">Secure identity platform</p>
+      </div>
+    </a>
+    <div class="flex items-center gap-1 text-sm">
+      <a href="{% url 'pages:landing' %}" hx-get="{% url 'pages:landing' %}" hx-target="#content" hx-push-url="true"
+         class="rounded-lg px-3 py-2 font-medium {% if request.path == '/' %}text-slate-900{% else %}text-slate-500 hover:text-slate-700{% endif %}">Home</a>
       {% if request.user.is_authenticated %}
-      <a href="{% url 'accounts:dashboard' %}" hx-get="{% url 'accounts:dashboard' %}" hx-target="#content" hx-push-url="true">Dashboard</a>
+      <a href="{% url 'accounts:dashboard' %}" hx-get="{% url 'accounts:dashboard' %}" hx-target="#content" hx-push-url="true"
+         class="rounded-lg px-3 py-2 text-slate-500 hover:text-slate-700">Dashboard</a>
       {% else %}
-      <a href="{% url 'accounts:login' %}" hx-get="{% url 'accounts:login' %}" hx-target="#content" hx-push-url="true">Login</a>
-      <a href="{% url 'accounts:register' %}" hx-get="{% url 'accounts:register' %}" hx-target="#content" hx-push-url="true">Register</a>
+      <a href="{% url 'accounts:login' %}" hx-get="{% url 'accounts:login' %}" hx-target="#content" hx-push-url="true"
+         class="rounded-lg px-3 py-2 text-slate-500 hover:text-slate-700">Sign In</a>
+      <a href="{% url 'accounts:register' %}" hx-get="{% url 'accounts:register' %}" hx-target="#content" hx-push-url="true"
+         class="rounded-lg px-3 py-2 text-slate-500 hover:text-slate-700">Create Account</a>
       {% endif %}
-      <a href="{% url 'pages:about' %}" hx-get="{% url 'pages:about' %}" hx-target="#content" hx-push-url="true">About</a>
-      <a href="{% url 'pages:contact' %}" hx-get="{% url 'pages:contact' %}" hx-target="#content" hx-push-url="true">Contact</a>
     </div>
   </nav>
 </header>
