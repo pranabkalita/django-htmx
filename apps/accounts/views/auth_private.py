@@ -8,6 +8,7 @@ from apps.accounts.forms.profile_forms import ProfileForm
 from apps.accounts.forms.twofa_forms import OTPVerifyForm
 from apps.accounts.services.auth_service import record_security_event
 from apps.accounts.services.user_service import deactivate_user, update_profile
+from apps.accounts.services import session_service
 from apps.accounts.services.twofa_service import generate_secret, get_or_create_twofa, provisioning_uri, qr_data_uri, verify_otp
 from apps.common.views.rendering import htmx_redirect, render_htmx
 
@@ -103,6 +104,33 @@ def deactivate_account(request):
             logout(request)
             return htmx_redirect(request, reverse('accounts:login'))
     return render_htmx(request, 'accounts/account/deactivate.html', 'accounts/account/partials/deactivate_content.html')
+
+
+@login_required
+def sessions_list(request):
+    sessions = session_service.get_user_sessions(request.user.id, request.session.session_key)
+    return render_htmx(request, 'accounts/account/sessions.html', None, {'sessions': sessions})
+
+
+@login_required
+def revoke_session_view(request):
+    if request.method == 'POST':
+        session_key = request.POST.get('session_key', '')
+        if session_key:
+            session_service.revoke_session(session_key, request.user.id)
+            messages.success(request, 'Session revoked successfully.')
+    return htmx_redirect(request, reverse('accounts:sessions'))
+
+
+@login_required
+def revoke_all_sessions_view(request):
+    if request.method == 'POST':
+        # Revoke all sessions including current — logs user out of all devices.
+        session_service.revoke_all_sessions(request.user.id)
+        logout(request)
+        messages.success(request, 'Logged out from all sessions.')
+        return htmx_redirect(request, reverse('accounts:login'))
+    return htmx_redirect(request, reverse('accounts:sessions'))
 
 
 @login_required

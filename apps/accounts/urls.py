@@ -17,5 +17,8 @@ urlpatterns = [
     path('profile/', auth_private.profile, name='profile'),
     path('change-password/', auth_private.change_password, name='change_password'),
     path('2fa/', auth_private.twofa_settings, name='twofa_settings'),
+    path('sessions/', auth_private.sessions_list, name='sessions'),
+    path('sessions/revoke/', auth_private.revoke_session_view, name='revoke_session'),
+    path('sessions/revoke-all/', auth_private.revoke_all_sessions_view, name='revoke_all_sessions'),
     path('deactivate/', auth_private.deactivate_account, name='deactivate_account'),
 ]
