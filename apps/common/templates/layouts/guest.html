@@ -1,0 +1,10 @@
+{% extends 'base_shell.html' %}
+{% block body %}
+<div class="min-h-screen flex flex-col">
+  {% include 'partials/navbar_guest.html' %}
+  <main id="content" class="flex-1 container mx-auto px-4 py-6">
+    {% include 'partials/flash_messages.html' %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

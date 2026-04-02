@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Secure Django HTMX</title>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <link rel="stylesheet" href="/static/build/output.css">
+  <script defer src="/static/js/htmx_progress.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-900">
+<div id="top-progress" class="fixed top-0 left-0 h-1 bg-indigo-600 w-0 z-50 transition-all duration-200"></div>
+{% block body %}{% endblock %}
+</body>
+</html>

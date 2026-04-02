@@ -1,0 +1,7 @@
+<h1 class="text-2xl font-semibold">2FA</h1>
+{% if not twofa.is_enabled %}
+<form method="post" class="mt-3">{% csrf_token %}<input type="hidden" name="action" value="start_enable"><button class="px-4 py-2 bg-indigo-600 text-white rounded">Start Enable</button></form>
+{% if qr_uri %}<img class="mt-4 w-44" src="{{ qr_uri }}" alt="QR"><form method="post" class="mt-3">{% csrf_token %}<input type="hidden" name="action" value="confirm_enable">{{ otp_form.as_p }}<button class="px-4 py-2 bg-green-600 text-white rounded">Confirm</button></form>{% endif %}
+{% else %}
+<form method="post" class="mt-3">{% csrf_token %}<input type="hidden" name="action" value="disable">{{ otp_form.as_p }}<button class="px-4 py-2 bg-red-600 text-white rounded">Disable</button></form>
+{% endif %}

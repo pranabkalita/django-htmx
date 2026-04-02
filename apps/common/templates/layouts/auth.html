@@ -1,0 +1,21 @@
+{% extends 'base_shell.html' %}
+{% block body %}
+<div class="min-h-screen flex">
+  <aside class="w-72 bg-gray-900 text-white p-4 flex flex-col">
+    <button class="md:hidden border border-gray-500 rounded px-3 py-2 mb-4">Menu</button>
+    <nav class="space-y-2">
+      <a class="block px-3 py-2 rounded hover:bg-gray-700" href="{% url 'accounts:dashboard' %}" hx-get="{% url 'accounts:dashboard' %}" hx-target="#content" hx-push-url="true">Dashboard</a>
+      <a class="block px-3 py-2 rounded hover:bg-gray-700" href="{% url 'accounts:profile' %}" hx-get="{% url 'accounts:profile' %}" hx-target="#content" hx-push-url="true">Profile</a>
+      <a class="block px-3 py-2 rounded hover:bg-gray-700" href="{% url 'accounts:change_password' %}" hx-get="{% url 'accounts:change_password' %}" hx-target="#content" hx-push-url="true">Change Password</a>
+      <a class="block px-3 py-2 rounded hover:bg-gray-700" href="{% url 'accounts:twofa_settings' %}" hx-get="{% url 'accounts:twofa_settings' %}" hx-target="#content" hx-push-url="true">2FA</a>
+      <a class="block px-3 py-2 rounded hover:bg-gray-700" href="{% url 'accounts:deactivate_account' %}" hx-get="{% url 'accounts:deactivate_account' %}" hx-target="#content" hx-push-url="true">Deactivate</a>
+    </nav>
+    <div class="mt-auto border-t border-gray-700 pt-4">
+      <p class="font-medium">{{ request.user.get_full_name|default:request.user.email }}</p>
+      <a class="text-sm underline" href="{% url 'accounts:profile' %}">Profile</a>
+      <form method="post" action="{% url 'accounts:logout' %}" class="mt-2">{% csrf_token %}<button class="text-sm bg-red-600 px-3 py-1 rounded">Logout</button></form>
+    </div>
+  </aside>
+  <main id="content" class="flex-1 p-6">{% include 'partials/flash_messages.html' %}{% block content %}{% endblock %}</main>
+</div>
+{% endblock %}
