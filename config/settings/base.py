@@ -36,6 +36,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'apps.common.middleware.session_timeout.SessionTimeoutMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django_htmx.middleware.HtmxMiddleware',
     'apps.common.middleware.request_id.RequestIDMiddleware',
@@ -103,6 +104,8 @@ AUTH_USER_MODEL = 'accounts.User'
 LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'accounts:dashboard'
 LOGOUT_REDIRECT_URL = 'pages:landing'
+SESSION_IDLE_TIMEOUT = max(1, env.int('SESSION_IDLE_TIMEOUT', default=900))
+SESSION_ABSOLUTE_TIMEOUT = max(1, env.int('SESSION_ABSOLUTE_TIMEOUT', default=28800))
 
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=True)

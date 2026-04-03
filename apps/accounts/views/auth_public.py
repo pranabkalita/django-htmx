@@ -22,6 +22,7 @@ from apps.accounts.services.auth_service import (
 from apps.accounts.services.twofa_service import verify_otp
 from apps.accounts.tasks.email_tasks import send_email_task
 from apps.common import toasts
+from apps.common.session_timeout import initialize_authenticated_session
 from apps.common.views.rendering import htmx_redirect, render_htmx
 
 
@@ -93,14 +94,14 @@ def login_view(request):
         elif hasattr(user, 'twofa_settings') and user.twofa_settings.is_enabled:
             request.session['pre_2fa_user_id'] = user.id
             request.session['pre_2fa_expires_at'] = int((timezone.now() + timedelta(minutes=5)).timestamp())
+            request.session['pre_2fa_remember_me'] = bool(form.cleaned_data['remember_me'])
             toasts.info(request, 'Enter your authenticator code to continue.')
             return htmx_redirect(request, reverse('accounts:twofa_challenge'))
         else:
             login(request, user)
             request.session.cycle_key()
             record_security_event(event_type='login_success', user=user, ip_address=_client_ip(request))
-            if not form.cleaned_data['remember_me']:
-                request.session.set_expiry(0)
+            initialize_authenticated_session(request, browser_close=not form.cleaned_data['remember_me'])
             toasts.success(request, 'Welcome back.')
             return htmx_redirect(request, reverse('accounts:dashboard'))
     return render_htmx(request, 'accounts/login.html', 'accounts/partials/login_content.html', {'form': form})
@@ -215,17 +216,21 @@ def twofa_challenge(request):
         if not expires_at or timezone.now().timestamp() > expires_at:
             request.session.pop('pre_2fa_user_id', None)
             request.session.pop('pre_2fa_expires_at', None)
+            request.session.pop('pre_2fa_remember_me', None)
             toasts.error(request, '2FA session expired. Please login again.')
             return htmx_redirect(request, reverse('accounts:login'))
 
         user = User.objects.select_related('twofa_settings').filter(id=request.session.get('pre_2fa_user_id')).first()
         if not user:
+            request.session.pop('pre_2fa_remember_me', None)
             return redirect('accounts:login')
         if verify_otp(user.twofa_settings.secret, request.POST.get('otp_code', '')):
             login(request, user)
             request.session.cycle_key()
+            remember_me = bool(request.session.pop('pre_2fa_remember_me', False))
             request.session.pop('pre_2fa_user_id', None)
             request.session.pop('pre_2fa_expires_at', None)
+            initialize_authenticated_session(request, browser_close=not remember_me)
             record_security_event(event_type='login_success_2fa', user=user, ip_address=_client_ip(request))
             toasts.success(request, 'Login verified with 2FA.')
             return htmx_redirect(request, reverse('accounts:dashboard'))
