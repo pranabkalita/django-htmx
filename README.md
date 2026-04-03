@@ -19,6 +19,7 @@ A full-stack, production-ready web application built with Django, HTMX, Tailwind
 - Password change
 - 2FA setup and teardown (with QR code provisioning)
 - Active session listing with individual and bulk revoke
+- Super admin operations via Django Admin (`/admin/`) for users, tokens, security events, and background jobs
 
 ### Developer Experience
 - HTMX-powered partial page rendering (no full-page reloads)
@@ -203,6 +204,20 @@ python manage.py migrate --settings=config.settings.dev
 python manage.py createsuperuser --settings=config.settings.dev
 ```
 
+If you already have an account and want to promote it to super admin:
+
+```bash
+python manage.py shell --settings=config.settings.dev
+```
+
+```python
+from apps.accounts.models import User
+u = User.objects.get(email="you@example.com")
+u.is_staff = True
+u.is_superuser = True
+u.save(update_fields=["is_staff", "is_superuser"])
+```
+
 ### 10. Start the development server
 
 ```bash
@@ -222,6 +237,21 @@ celery -A config worker --loglevel=info
 
 Without the Celery worker, operations that send email (registration, password reset) will queue tasks but not deliver them until the worker is running.
 
+### 12. Open Django Admin (Super Admin)
+
+After creating a superuser, sign in at:
+
+```text
+http://127.0.0.1:8000/admin/
+```
+
+Important behavior:
+- Admin access is restricted to superusers only.
+- Staff users without `is_superuser=True` are denied admin access.
+- Background email jobs are visible in admin and support retry actions for `FAILED` and `PENDING` jobs.
+- Superusers cannot delete their own account, and the last remaining superuser cannot be deleted.
+- Bulk delete is disabled for users in admin to reduce lockout risk.
+
 ---
 
 ## Environment Variables
@@ -233,10 +263,13 @@ All environment variables are read from `.env` via `django-environ`.
 | Variable                      | Default                     | Description                                                             |
 |-------------------------------|-----------------------------|-------------------------------------------------------------------------|
 | `DJANGO_SECRET_KEY`           | *(required)*                | Django secret key. Use a long random string.                            |
+| `APP_NAME`                    | `YourAppName`               | App display name used in templates, emails, and UI labels.              |
 | `DJANGO_DEBUG`                | `false`                     | Enable debug mode. Never `true` in production.                          |
 | `DJANGO_ALLOWED_HOSTS`        | `127.0.0.1,localhost`       | Comma-separated list of allowed hostnames.                              |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | *(empty)*                   | Required if behind a reverse proxy (e.g. `https://your-domain.com`).   |
 | `FERNET_KEY`                  | *(derived from SECRET_KEY)* | Encryption key for TOTP secrets. Use a stable dedicated key in production. |
+| `SESSION_IDLE_TIMEOUT`        | `900`                       | Idle timeout in seconds; logs out inactive authenticated sessions.       |
+| `SESSION_ABSOLUTE_TIMEOUT`    | `28800`                     | Maximum authenticated session lifetime in seconds.                       |
 
 ### Database
 
@@ -263,6 +296,7 @@ All environment variables are read from `.env` via `django-environ`.
 | Variable          | Default                  | Description                                                                   |
 |-------------------|--------------------------|-------------------------------------------------------------------------------|
 | `MAIL_DRIVER`     | `log`                    | `log`: writes emails to files. `smtp`: sends real email via SMTP.             |
+| `MAIL_FROM_NAME`  | *(falls back to APP_NAME)* | Display name for outbound email sender (e.g. `Acme Security`).              |
 | `MAIL_FROM_EMAIL` | `no-reply@example.com`   | The `From` address for outbound email.                                        |
 | `SMTP_HOST`       | `localhost`              | SMTP server hostname. Only used when `MAIL_DRIVER=smtp`.                      |
 | `SMTP_PORT`       | `587`                    | SMTP server port.                                                             |
@@ -312,6 +346,21 @@ python manage.py collectstatic --settings=config.settings.prod
 ```bash
 celery -A config worker --loglevel=info
 ```
+
+### Admin access
+
+```bash
+# Create first super admin
+python manage.py createsuperuser --settings=config.settings.dev
+
+# Then sign in at /admin/
+```
+
+Admin includes:
+- User management with email verification and 2FA visibility/filtering
+- Security event audit logs (read-only)
+- Email verification and password reset tokens
+- Background job monitoring and retry actions
 
 ### Tailwind CSS
 
@@ -417,7 +466,14 @@ Check the worker terminal for connection errors and ensure `CELERY_BROKER_URL` i
 
 **Static files return 404 in production**
 Run `python manage.py collectstatic --settings=config.settings.prod` and confirm your Nginx `location /static/` block points to `STATIC_ROOT`.
-8. Run celery worker: `celery -A config worker -l info`
+
+**Cannot access Django Admin as staff user**
+This project explicitly restricts admin access to superusers. Ensure both flags are set for the account:
+- `is_staff=True`
+- `is_superuser=True`
+
+**Delete button is missing for my own superuser account**
+Expected behavior. The admin prevents self-deletion and deletion of the final remaining superuser to avoid accidental admin lockout.
 
 ## Notes
 - `MAIL_DRIVER=log` stores generated emails in `logs/mail/`.

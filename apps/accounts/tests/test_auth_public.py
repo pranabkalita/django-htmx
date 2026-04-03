@@ -39,7 +39,7 @@ class AuthPublicViewTests(HTMXAssertionsMixin, TestCase):
         response = self.client.get(reverse('accounts:register'))
         self.assertRedirects(response, reverse('accounts:dashboard'))
 
-    @patch('apps.accounts.views.auth_public.send_email_task.delay')
+    @patch('apps.accounts.views.auth_public.enqueue_email_job')
     def test_register_success_creates_user_token_and_enqueues_email(self, mock_delay):
         response = self.client.post(
             reverse('accounts:register'),
@@ -149,7 +149,7 @@ class AuthPublicViewTests(HTMXAssertionsMixin, TestCase):
         self.unverified_user.refresh_from_db()
         self.assertFalse(self.unverified_user.is_email_verified)
 
-    @patch('apps.accounts.views.auth_public.send_email_task.delay')
+    @patch('apps.accounts.views.auth_public.enqueue_email_job')
     def test_forgot_password_existing_email_creates_reset_token(self, mock_delay):
         response = self.client.post(
             reverse('accounts:forgot_password'),
@@ -162,7 +162,7 @@ class AuthPublicViewTests(HTMXAssertionsMixin, TestCase):
         self.assertEqual(PasswordResetToken.objects.filter(user=self.verified_user, used_at__isnull=True).count(), 1)
         mock_delay.assert_called_once()
 
-    @patch('apps.accounts.views.auth_public.send_email_task.delay')
+    @patch('apps.accounts.views.auth_public.enqueue_email_job')
     def test_forgot_password_unknown_email_returns_generic_response(self, mock_delay):
         response = self.client.post(
             reverse('accounts:forgot_password'),
@@ -179,7 +179,7 @@ class AuthPublicViewTests(HTMXAssertionsMixin, TestCase):
         response = self.client.get(reverse('accounts:resend_verification'))
         self.assertRedirects(response, reverse('accounts:login'))
 
-    @patch('apps.accounts.views.auth_public.send_email_task.delay')
+    @patch('apps.accounts.views.auth_public.enqueue_email_job')
     def test_resend_verification_for_unverified_user_rotates_token(self, mock_delay):
         old = EmailVerificationToken.objects.create(
             user=self.unverified_user,

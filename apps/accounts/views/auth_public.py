@@ -19,8 +19,8 @@ from apps.accounts.services.auth_service import (
     record_security_event,
     register_user,
 )
+from apps.accounts.services.job_service import enqueue_email_job
 from apps.accounts.services.twofa_service import verify_otp
-from apps.accounts.tasks.email_tasks import send_email_task
 from apps.common import toasts
 from apps.common.session_timeout import initialize_authenticated_session
 from apps.common.views.rendering import htmx_redirect, render_htmx
@@ -57,12 +57,12 @@ def register(request):
                 f'If you did not create an account, you can safely ignore this email.\n\n'
                 f'{app_name}\n{site_url}\nSupport: {settings.DEFAULT_FROM_EMAIL}'
             )
-            send_email_task.delay(
-                f'Verify your account - {app_name}',
-                text_body,
-                [user.email],
-                'accounts/emails/verify_email.html',
-                {
+            enqueue_email_job(
+                subject=f'Verify your account - {app_name}',
+                body=text_body,
+                recipients=[user.email],
+                html_template='accounts/emails/verify_email.html',
+                context={
                     'first_name': user.first_name or user.email,
                     'verify_url': verify_url,
                     'site_url': site_url,
@@ -140,12 +140,12 @@ def forgot_password(request):
                 f'If you did not request a password reset, you can safely ignore this email.\n\n'
                 f'{app_name}\n{site_url}\nSupport: {settings.DEFAULT_FROM_EMAIL}'
             )
-            send_email_task.delay(
-                f'Reset your password - {app_name}',
-                reset_text_body,
-                [user.email],
-                'accounts/emails/reset_password.html',
-                {
+            enqueue_email_job(
+                subject=f'Reset your password - {app_name}',
+                body=reset_text_body,
+                recipients=[user.email],
+                html_template='accounts/emails/reset_password.html',
+                context={
                     'first_name': user.first_name or user.email,
                     'reset_url': reset_url,
                     'site_url': site_url,
@@ -176,12 +176,12 @@ def resend_verification(request):
             f'This link expires in 24 hours.\n\n'
             f'{app_name}\n{site_url}\nSupport: {settings.DEFAULT_FROM_EMAIL}'
         )
-        send_email_task.delay(
-            f'Verify your account - {app_name}',
-            text_body,
-            [user.email],
-            'accounts/emails/verify_email.html',
-            {
+        enqueue_email_job(
+            subject=f'Verify your account - {app_name}',
+            body=text_body,
+            recipients=[user.email],
+            html_template='accounts/emails/verify_email.html',
+            context={
                 'first_name': user.first_name or user.email,
                 'verify_url': verify_url,
                 'site_url': site_url,

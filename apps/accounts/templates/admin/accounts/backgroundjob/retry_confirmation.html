@@ -1,0 +1,25 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <h1>{{ title }}</h1>
+  <p><strong>Job:</strong> #{{ job.id }}</p>
+  <p><strong>Task:</strong> {{ job.task_name }}</p>
+  <p><strong>Status:</strong> {{ job.status|upper }}</p>
+  {% if job.failure_reason %}
+  <p><strong>Failure reason:</strong> {{ job.failure_reason }}</p>
+  {% endif %}
+
+  {% if can_retry %}
+  <p>This will enqueue a new retry job and mark this job as retried.</p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="submit" class="default" value="Confirm Retry">
+    <a class="button" href="{% url 'admin:accounts_backgroundjob_changelist' %}">Cancel</a>
+  </form>
+  {% else %}
+  <p>This job is not eligible for retry. Only FAILED and PENDING jobs can be retried.</p>
+  <p><a class="button" href="{% url 'admin:accounts_backgroundjob_changelist' %}">Back</a></p>
+  {% endif %}
+</div>
+{% endblock %}
