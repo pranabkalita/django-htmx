@@ -71,10 +71,10 @@ def register(request):
                 },
             )
             toasts.success(request, 'Registration complete. Verify your email before login.')
-            return htmx_redirect(request, reverse('accounts:login'))
+            return htmx_redirect(request, reverse('accounts:login'), shell='guest')
         except IntegrityError:
             form.add_error('email', 'Email already registered.')
-    return render_htmx(request, 'accounts/register.html', 'accounts/partials/register_content.html', {'form': form})
+    return render_htmx(request, 'accounts/register.html', 'accounts/partials/register_content.html', {'form': form}, shell='guest')
 
 
 @ratelimit(key='post:email', rate='5/m', method='POST', block=True)
@@ -96,28 +96,28 @@ def login_view(request):
             request.session['pre_2fa_expires_at'] = int((timezone.now() + timedelta(minutes=5)).timestamp())
             request.session['pre_2fa_remember_me'] = bool(form.cleaned_data['remember_me'])
             toasts.info(request, 'Enter your authenticator code to continue.')
-            return htmx_redirect(request, reverse('accounts:twofa_challenge'))
+            return htmx_redirect(request, reverse('accounts:twofa_challenge'), shell='guest')
         else:
             login(request, user)
             request.session.cycle_key()
             record_security_event(event_type='login_success', user=user, ip_address=_client_ip(request))
             initialize_authenticated_session(request, browser_close=not form.cleaned_data['remember_me'])
             toasts.success(request, 'Welcome back.')
-            return htmx_redirect(request, reverse('accounts:dashboard'))
-    return render_htmx(request, 'accounts/login.html', 'accounts/partials/login_content.html', {'form': form})
+            return htmx_redirect(request, reverse('accounts:dashboard'), shell='auth')
+    return render_htmx(request, 'accounts/login.html', 'accounts/partials/login_content.html', {'form': form}, shell='guest')
 
 
 def verify_email(request, token):
     record = get_object_or_404(EmailVerificationToken, token=token, used_at__isnull=True)
     if record.expires_at < timezone.now():
         toasts.error(request, 'Verification link expired. Request a new verification email.')
-        return htmx_redirect(request, reverse('accounts:login'))
+        return htmx_redirect(request, reverse('accounts:login'), shell='guest')
     record.user.is_email_verified = True
     record.user.save(update_fields=['is_email_verified'])
     record.used_at = timezone.now()
     record.save(update_fields=['used_at'])
     toasts.success(request, 'Email verified, you can login now.')
-    return htmx_redirect(request, reverse('accounts:login'))
+    return htmx_redirect(request, reverse('accounts:login'), shell='guest')
 
 
 @ratelimit(key='ip', rate='5/m', method='POST', block=True)
@@ -154,14 +154,14 @@ def forgot_password(request):
                 },
             )
         toasts.info(request, 'If the email exists, a reset link has been sent.')
-        return htmx_redirect(request, reverse('accounts:login'))
-    return render_htmx(request, 'accounts/forgot_password.html', 'accounts/partials/forgot_password_content.html', {'form': form})
+        return htmx_redirect(request, reverse('accounts:login'), shell='guest')
+    return render_htmx(request, 'accounts/forgot_password.html', 'accounts/partials/forgot_password_content.html', {'form': form}, shell='guest')
 
 
 @ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def resend_verification(request):
     if request.method != 'POST':
-        return htmx_redirect(request, reverse('accounts:login'))
+        return htmx_redirect(request, reverse('accounts:login'), shell='guest')
 
     email = (request.POST.get('email') or '').strip()
     user = User.objects.filter(email__iexact=email).first()
@@ -191,7 +191,7 @@ def resend_verification(request):
         )
 
     toasts.info(request, 'If the account exists and is unverified, a verification email has been sent.')
-    return htmx_redirect(request, reverse('accounts:login'))
+    return htmx_redirect(request, reverse('accounts:login'), shell='guest')
 
 
 @ratelimit(key='ip', rate='5/m', method='POST', block=True)
@@ -201,12 +201,12 @@ def reset_password(request, token):
     if request.method == 'POST' and form.is_valid():
         if record.expires_at < timezone.now():
             toasts.error(request, 'Reset link expired. Request a new one.')
-            return htmx_redirect(request, reverse('accounts:forgot_password'))
+            return htmx_redirect(request, reverse('accounts:forgot_password'), shell='guest')
         complete_password_reset(record, form.cleaned_data['new_password'])
         record_security_event(event_type='password_reset_completed', user=record.user, ip_address=_client_ip(request))
         toasts.success(request, 'Password reset successful. Login again.')
-        return htmx_redirect(request, reverse('accounts:login'))
-    return render_htmx(request, 'accounts/reset_password.html', 'accounts/partials/reset_password_content.html', {'form': form})
+        return htmx_redirect(request, reverse('accounts:login'), shell='guest')
+    return render_htmx(request, 'accounts/reset_password.html', 'accounts/partials/reset_password_content.html', {'form': form}, shell='guest')
 
 
 @ratelimit(key='ip', rate='10/m', method='POST', block=True)
@@ -218,7 +218,7 @@ def twofa_challenge(request):
             request.session.pop('pre_2fa_expires_at', None)
             request.session.pop('pre_2fa_remember_me', None)
             toasts.error(request, '2FA session expired. Please login again.')
-            return htmx_redirect(request, reverse('accounts:login'))
+            return htmx_redirect(request, reverse('accounts:login'), shell='guest')
 
         user = User.objects.select_related('twofa_settings').filter(id=request.session.get('pre_2fa_user_id')).first()
         if not user:
@@ -233,7 +233,7 @@ def twofa_challenge(request):
             initialize_authenticated_session(request, browser_close=not remember_me)
             record_security_event(event_type='login_success_2fa', user=user, ip_address=_client_ip(request))
             toasts.success(request, 'Login verified with 2FA.')
-            return htmx_redirect(request, reverse('accounts:dashboard'))
+            return htmx_redirect(request, reverse('accounts:dashboard'), shell='auth')
         record_security_event(event_type='twofa_failed', user=user, ip_address=_client_ip(request))
         toasts.error(request, 'Invalid OTP code.')
-    return render_htmx(request, 'accounts/twofa_challenge.html', 'accounts/partials/twofa_challenge_content.html')
+    return render_htmx(request, 'accounts/twofa_challenge.html', 'accounts/partials/twofa_challenge_content.html', shell='guest')

@@ -28,6 +28,7 @@ def dashboard(request):
         'accounts/dashboard.html',
         'accounts/partials/dashboard_content.html',
         {'twofa_enabled': bool(twofa and twofa.is_enabled)},
+        shell='auth',
     )
 
 
@@ -44,11 +45,12 @@ def profile(request):
                 'accounts/account/profile.html',
                 'accounts/account/partials/profile_content.html',
                 {'form': refreshed_form},
+                shell='auth',
             )
-        return htmx_redirect(request, reverse('accounts:profile'))
+        return htmx_redirect(request, reverse('accounts:profile'), shell='auth')
     if request.method == 'POST' and not form.is_valid():
         toasts.error(request, 'Please correct the profile form errors and try again.')
-    return render_htmx(request, 'accounts/account/profile.html', 'accounts/account/partials/profile_content.html', {'form': form})
+    return render_htmx(request, 'accounts/account/profile.html', 'accounts/account/partials/profile_content.html', {'form': form}, shell='auth')
 
 
 @login_required
@@ -58,8 +60,8 @@ def change_password(request):
         form.save()
         logout(request)
         toasts.success(request, 'Password changed. Login again.')
-        return htmx_redirect(request, reverse('accounts:login'))
-    return render_htmx(request, 'accounts/account/change_password.html', 'accounts/account/partials/change_password_content.html', {'form': form})
+        return htmx_redirect(request, reverse('accounts:login'), shell='guest')
+    return render_htmx(request, 'accounts/account/change_password.html', 'accounts/account/partials/change_password_content.html', {'form': form}, shell='auth')
 
 
 @login_required
@@ -81,7 +83,7 @@ def twofa_settings(request):
             twofa.save(update_fields=['is_enabled'])
             record_security_event(event_type='twofa_enabled', user=request.user, ip_address=_client_ip(request))
             toasts.success(request, '2FA enabled.')
-            return htmx_redirect(request, reverse('accounts:twofa_settings'))
+            return htmx_redirect(request, reverse('accounts:twofa_settings'), shell='auth')
         toasts.error(request, 'Invalid OTP code.')
 
     if request.method == 'POST' and request.POST.get('action') == 'disable' and otp_form.is_valid():
@@ -91,7 +93,7 @@ def twofa_settings(request):
             twofa.save(update_fields=['is_enabled', 'secret'])
             record_security_event(event_type='twofa_disabled', user=request.user, ip_address=_client_ip(request))
             toasts.success(request, '2FA disabled.')
-            return htmx_redirect(request, reverse('accounts:twofa_settings'))
+            return htmx_redirect(request, reverse('accounts:twofa_settings'), shell='auth')
         toasts.error(request, 'Invalid OTP code.')
 
     return render_htmx(
@@ -99,6 +101,7 @@ def twofa_settings(request):
         'accounts/account/twofa.html',
         'accounts/account/partials/twofa_content.html',
         {'twofa': twofa, 'otp_form': otp_form, 'qr_uri': qr_uri},
+        shell='auth',
     )
 
 
@@ -113,14 +116,14 @@ def deactivate_account(request):
             record_security_event(event_type='account_deactivated', user=request.user, ip_address=_client_ip(request))
             logout(request)
             toasts.warning(request, 'Account deactivated. You have been logged out.', position='top-center')
-            return htmx_redirect(request, reverse('accounts:login'))
-    return render_htmx(request, 'accounts/account/deactivate.html', 'accounts/account/partials/deactivate_content.html')
+            return htmx_redirect(request, reverse('accounts:login'), shell='guest')
+    return render_htmx(request, 'accounts/account/deactivate.html', 'accounts/account/partials/deactivate_content.html', shell='auth')
 
 
 @login_required
 def sessions_list(request):
     sessions = session_service.get_user_sessions(request.user.id, request.session.session_key)
-    return render_htmx(request, 'accounts/account/sessions.html', None, {'sessions': sessions})
+    return render_htmx(request, 'accounts/account/sessions.html', None, {'sessions': sessions}, shell='auth')
 
 
 @login_required
@@ -133,7 +136,7 @@ def revoke_session_view(request):
                 toasts.success(request, 'Session revoked successfully.')
             else:
                 toasts.warning(request, 'Session already expired or unavailable.')
-    return htmx_redirect(request, reverse('accounts:sessions'))
+    return htmx_redirect(request, reverse('accounts:sessions'), shell='auth')
 
 
 @login_required
@@ -143,8 +146,8 @@ def revoke_all_sessions_view(request):
         session_service.revoke_all_sessions(request.user.id)
         logout(request)
         toasts.warning(request, 'Logged out from all sessions.', position='top-center')
-        return htmx_redirect(request, reverse('accounts:login'))
-    return htmx_redirect(request, reverse('accounts:sessions'))
+        return htmx_redirect(request, reverse('accounts:login'), shell='guest')
+    return htmx_redirect(request, reverse('accounts:sessions'), shell='auth')
 
 
 @login_required
@@ -152,4 +155,4 @@ def logout_view(request):
     if request.method == 'POST':
         logout(request)
         toasts.info(request, 'You have been logged out.')
-    return htmx_redirect(request, reverse('accounts:login'))
+    return htmx_redirect(request, reverse('accounts:login'), shell='guest')

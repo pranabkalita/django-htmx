@@ -1,3 +1,5 @@
+import json
+from json import JSONDecodeError
 from django.test import TestCase
 from django.test import override_settings
 from django.urls import reverse
@@ -16,6 +18,24 @@ from apps.common.session_timeout import (
 
 
 class AuthSmokeTests(TestCase):
+    def assert_hx_location(self, response, path, *, target=None, swap=None):
+        header = response.headers.get('HX-Location')
+        self.assertIsNotNone(header)
+        if target or swap:
+            try:
+                payload = json.loads(header)
+            except JSONDecodeError:
+                self.assertEqual(header, path)
+                return header
+            self.assertEqual(payload['path'], path)
+            if target:
+                self.assertEqual(payload.get('target'), target)
+            if swap:
+                self.assertEqual(payload.get('swap'), swap)
+            return payload
+        self.assertEqual(header, path)
+        return header
+
     def test_register_page_loads(self):
         response = self.client.get(reverse('accounts:register'))
         self.assertEqual(response.status_code, 200)
@@ -48,7 +68,7 @@ class AuthSmokeTests(TestCase):
             HTTP_HX_REQUEST='true',
         )
         self.assertEqual(response.status_code, 204)
-        self.assertEqual(response.headers.get('HX-Location'), reverse('accounts:login'))
+        self.assert_hx_location(response, reverse('accounts:login'))
 
     def test_htmx_login_redirects_with_hx_location(self):
         User.objects.create_user(
@@ -64,7 +84,7 @@ class AuthSmokeTests(TestCase):
             HTTP_HX_REQUEST='true',
         )
         self.assertEqual(response.status_code, 204)
-        self.assertEqual(response.headers.get('HX-Location'), reverse('accounts:dashboard'))
+        self.assert_hx_location(response, reverse('accounts:dashboard'), target='body', swap='innerHTML')
 
     def test_htmx_change_password_redirects_with_hx_location(self):
         user = User.objects.create_user(
@@ -85,7 +105,7 @@ class AuthSmokeTests(TestCase):
             HTTP_HX_REQUEST='true',
         )
         self.assertEqual(response.status_code, 204)
-        self.assertEqual(response.headers.get('HX-Location'), reverse('accounts:login'))
+        self.assert_hx_location(response, reverse('accounts:login'), target='body', swap='innerHTML')
 
     def test_htmx_twofa_challenge_redirects_with_hx_location(self):
         user = User.objects.create_user(
@@ -112,7 +132,29 @@ class AuthSmokeTests(TestCase):
             HTTP_HX_REQUEST='true',
         )
         self.assertEqual(response.status_code, 204)
-        self.assertEqual(response.headers.get('HX-Location'), reverse('accounts:dashboard'))
+        self.assert_hx_location(response, reverse('accounts:dashboard'), target='body', swap='innerHTML')
+
+    def test_htmx_dashboard_from_guest_shell_swaps_full_auth_layout(self):
+        user = User.objects.create_user(
+            email='layout@example.com',
+            first_name='Layout',
+            last_name='User',
+            password='StrongPass123!',
+            is_email_verified=True,
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(
+            reverse('accounts:dashboard'),
+            HTTP_HX_REQUEST='true',
+            HTTP_HX_CURRENT_URL='http://testserver/',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get('HX-Retarget'), 'body')
+        self.assertEqual(response.headers.get('HX-Reswap'), 'innerHTML')
+        self.assertContains(response, 'Security Dashboard')
+        self.assertContains(response, 'Profile &amp; security')
 
     @override_settings(SESSION_IDLE_TIMEOUT=60, SESSION_ABSOLUTE_TIMEOUT=3600)
     def test_idle_timeout_logs_out_authenticated_htmx_request(self):
@@ -135,7 +177,7 @@ class AuthSmokeTests(TestCase):
         response = self.client.get(reverse('accounts:dashboard'), HTTP_HX_REQUEST='true')
 
         self.assertEqual(response.status_code, 204)
-        self.assertEqual(response.headers.get('HX-Location'), reverse('accounts:login'))
+        self.assert_hx_location(response, reverse('accounts:login'), target='body', swap='innerHTML')
         self.assertNotIn('_auth_user_id', self.client.session)
 
     @override_settings(SESSION_IDLE_TIMEOUT=120, SESSION_ABSOLUTE_TIMEOUT=3600)
@@ -183,7 +225,7 @@ class AuthSmokeTests(TestCase):
         response = self.client.get(reverse('accounts:dashboard'), HTTP_HX_REQUEST='true')
 
         self.assertEqual(response.status_code, 204)
-        self.assertEqual(response.headers.get('HX-Location'), reverse('accounts:login'))
+        self.assert_hx_location(response, reverse('accounts:login'), target='body', swap='innerHTML')
         self.assertNotIn('_auth_user_id', self.client.session)
 
     def test_twofa_login_without_remember_me_keeps_browser_close_expiry(self):
@@ -205,7 +247,7 @@ class AuthSmokeTests(TestCase):
             HTTP_HX_REQUEST='true',
         )
         self.assertEqual(login_response.status_code, 204)
-        self.assertEqual(login_response.headers.get('HX-Location'), reverse('accounts:twofa_challenge'))
+        self.assert_hx_location(login_response, reverse('accounts:twofa_challenge'))
 
         otp = pyotp.TOTP(twofa.secret).now()
         challenge_response = self.client.post(
@@ -215,5 +257,5 @@ class AuthSmokeTests(TestCase):
         )
 
         self.assertEqual(challenge_response.status_code, 204)
-        self.assertEqual(challenge_response.headers.get('HX-Location'), reverse('accounts:dashboard'))
+        self.assert_hx_location(challenge_response, reverse('accounts:dashboard'), target='body', swap='innerHTML')
         self.assertTrue(self.client.session.get_expire_at_browser_close())

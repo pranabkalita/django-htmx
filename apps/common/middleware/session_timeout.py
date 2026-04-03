@@ -1,6 +1,4 @@
 from django.contrib.auth import logout
-from django.http import HttpResponse
-from django.shortcuts import redirect
 from django.urls import reverse
 
 from apps.common import toasts
@@ -10,6 +8,7 @@ from apps.common.session_timeout import (
     is_idle_timed_out,
     touch_authenticated_session,
 )
+from apps.common.views.rendering import htmx_redirect
 
 
 class SessionTimeoutMiddleware:
@@ -34,9 +33,4 @@ class SessionTimeoutMiddleware:
     def _expire_session(self, request, message):
         logout(request)
         toasts.warning(request, message, position='top-center')
-        login_url = reverse('accounts:login')
-        if request.headers.get('HX-Request') == 'true':
-            response = HttpResponse(status=204)
-            response['HX-Location'] = login_url
-            return response
-        return redirect(login_url)
+        return htmx_redirect(request, reverse('accounts:login'), shell='guest')
