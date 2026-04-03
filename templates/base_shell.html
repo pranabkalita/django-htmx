@@ -4,7 +4,7 @@
   {% load static %}
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Secure Django HTMX</title>
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
   <script defer src="{% static 'js/htmx.min.js' %}"></script>
   <link rel="stylesheet" href="{% static 'build/output.css' %}">
   <script defer src="{% static 'js/htmx_progress.js' %}"></script>

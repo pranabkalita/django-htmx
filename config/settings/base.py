@@ -1,6 +1,7 @@
 from pathlib import Path
 import base64
 import hashlib
+from email.utils import formataddr
 
 import environ
 
@@ -9,6 +10,7 @@ env = environ.Env()
 environ.Env.read_env(BASE_DIR / '.env')
 
 SECRET_KEY = env('DJANGO_SECRET_KEY')
+APP_NAME = env('APP_NAME', default='YourAppName')
 FERNET_KEY = env('FERNET_KEY', default=base64.urlsafe_b64encode(hashlib.sha256(SECRET_KEY.encode()).digest()).decode())
 DEBUG = env.bool('DJANGO_DEBUG', default=False)
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['127.0.0.1', 'localhost'])
@@ -50,6 +52,7 @@ TEMPLATES = [{
         'django.template.context_processors.request',
         'django.contrib.auth.context_processors.auth',
         'django.contrib.messages.context_processors.messages',
+        'apps.common.context_processors.app_meta',
     ]},
 }]
 
@@ -116,6 +119,8 @@ X_FRAME_OPTIONS = 'DENY'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 DEFAULT_FROM_EMAIL = env('MAIL_FROM_EMAIL', default='no-reply@example.com')
+MAIL_FROM_NAME = env('MAIL_FROM_NAME', default=APP_NAME)
+FORMATTED_FROM_EMAIL = formataddr((MAIL_FROM_NAME, DEFAULT_FROM_EMAIL))
 MAIL_DRIVER = env('MAIL_DRIVER', default='log')
 if MAIL_DRIVER == 'smtp':
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

@@ -48,15 +48,16 @@ def register(request):
             token = build_email_verification(user)
             verify_url = request.build_absolute_uri(reverse('accounts:verify_email', kwargs={'token': token.token}))
             site_url = request.build_absolute_uri('/').rstrip('/')
+            app_name = settings.APP_NAME
             text_body = (
-                f'Welcome to FastAuth, {user.first_name or user.email}.\n\n'
+                f'Welcome to {app_name}, {user.first_name or user.email}.\n\n'
                 f'Verify your email address to activate your account:\n{verify_url}\n\n'
                 f'This link expires in 24 hours.\n\n'
                 f'If you did not create an account, you can safely ignore this email.\n\n'
-                f'FastAuth\n{site_url}\nSupport: {settings.DEFAULT_FROM_EMAIL}'
+                f'{app_name}\n{site_url}\nSupport: {settings.DEFAULT_FROM_EMAIL}'
             )
             send_email_task.delay(
-                'Verify your account - FastAuth',
+                f'Verify your account - {app_name}',
                 text_body,
                 [user.email],
                 'accounts/emails/verify_email.html',
@@ -129,16 +130,17 @@ def forgot_password(request):
             token = build_password_reset(user)
             reset_url = request.build_absolute_uri(reverse('accounts:reset_password', kwargs={'token': token.token}))
             site_url = request.build_absolute_uri('/').rstrip('/')
+            app_name = settings.APP_NAME
             reset_text_body = (
                 f'Hi {user.first_name or user.email},\n\n'
-                f'We received a request to reset your FastAuth password.\n\n'
+                f'We received a request to reset your {app_name} password.\n\n'
                 f'Reset your password using this link:\n{reset_url}\n\n'
                 f'This link expires in 1 hour.\n\n'
                 f'If you did not request a password reset, you can safely ignore this email.\n\n'
-                f'FastAuth\n{site_url}\nSupport: {settings.DEFAULT_FROM_EMAIL}'
+                f'{app_name}\n{site_url}\nSupport: {settings.DEFAULT_FROM_EMAIL}'
             )
             send_email_task.delay(
-                'Reset your password - FastAuth',
+                f'Reset your password - {app_name}',
                 reset_text_body,
                 [user.email],
                 'accounts/emails/reset_password.html',
@@ -166,14 +168,15 @@ def resend_verification(request):
         token = build_email_verification(user)
         verify_url = request.build_absolute_uri(reverse('accounts:verify_email', kwargs={'token': token.token}))
         site_url = request.build_absolute_uri('/').rstrip('/')
+        app_name = settings.APP_NAME
         text_body = (
             f'Hi {user.first_name or user.email},\n\n'
-            f'Use this link to verify your FastAuth account:\n{verify_url}\n\n'
+            f'Use this link to verify your {app_name} account:\n{verify_url}\n\n'
             f'This link expires in 24 hours.\n\n'
-            f'FastAuth\n{site_url}\nSupport: {settings.DEFAULT_FROM_EMAIL}'
+            f'{app_name}\n{site_url}\nSupport: {settings.DEFAULT_FROM_EMAIL}'
         )
         send_email_task.delay(
-            'Verify your account - FastAuth',
+            f'Verify your account - {app_name}',
             text_body,
             [user.email],
             'accounts/emails/verify_email.html',

@@ -3,6 +3,7 @@ import io
 
 import pyotp
 import qrcode
+from django.conf import settings
 
 from apps.accounts.models import TwoFactorSettings
 
@@ -17,7 +18,7 @@ def generate_secret():
 
 
 def provisioning_uri(user, secret):
-    return pyotp.TOTP(secret).provisioning_uri(name=user.email, issuer_name='SecureDjangoHTMX')
+    return pyotp.TOTP(secret).provisioning_uri(name=user.email, issuer_name=settings.APP_NAME)
 
 
 def qr_data_uri(uri):

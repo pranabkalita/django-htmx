@@ -3,7 +3,7 @@
     <a class="flex items-center gap-2.5" href="{% url 'pages:landing' %}" hx-get="{% url 'pages:landing' %}" hx-target="#content" hx-push-url="true">
       <div class="grid h-9 w-9 place-items-center rounded-full bg-emerald-600 text-sm font-bold text-white">FA</div>
       <div>
-        <p class="text-sm font-semibold leading-none text-slate-900">FastAuth</p>
+        <p class="text-sm font-semibold leading-none text-slate-900">{{ app_name }}</p>
         <p class="text-xs text-slate-500">Secure identity platform</p>
       </div>
     </a>

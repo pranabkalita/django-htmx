@@ -3,7 +3,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}FastAuth{% endblock %}</title>
+    <title>{% block title %}{{ app_name }}{% endblock %}</title>
     <style>
       body {
         margin: 0;
@@ -143,7 +143,7 @@
                 <div class="brand-row">
                   <span class="badge">FA</span>
                   <div>
-                    <div class="brand-name">FastAuth</div>
+                    <div class="brand-name">{{ app_name }}</div>
                     <div class="brand-sub">Secure identity platform</div>
                   </div>
                 </div>
@@ -159,11 +159,11 @@
             </tr>
             <tr>
               <td class="footer">
-                <div>This is an automated security email from FastAuth.</div>
+                <div>This is an automated security email from {{ app_name }}.</div>
                 <div>
                   <a href="{{ site_url }}">{{ site_url }}</a> | Support: <a href="mailto:{{ support_email }}">{{ support_email }}</a>
                 </div>
-                <div>&copy; {{ year }} FastAuth. All rights reserved.</div>
+                <div>&copy; {{ year }} {{ app_name }}. All rights reserved.</div>
               </td>
             </tr>
           </table>

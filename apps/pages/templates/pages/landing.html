@@ -13,7 +13,7 @@
 						<span class="text-emerald-600"> for<br>modern teams</span>
 					</h1>
 					<p class="mt-4 max-w-md text-base text-slate-500">
-						FastAuth gives you reliable email verification, session control, and two-factor protection in one clean workflow.
+						{{ app_name }} gives you reliable email verification, session control, and two-factor protection in one clean workflow.
 					</p>
 					<div class="mt-6 flex flex-wrap gap-3">
 						<a href="{% url 'accounts:register' %}" hx-get="{% url 'accounts:register' %}" hx-target="#content" hx-push-url="true"
@@ -43,7 +43,7 @@
 			<!-- Right column -->
 			<div class="flex items-start justify-center lg:justify-end">
 				<div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-					<p class="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Why Teams Pick FastAuth</p>
+					<p class="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Why Teams Pick {{ app_name }}</p>
 					<ul class="mt-4 space-y-3">
 						<li class="flex items-start gap-2 text-sm text-slate-700">
 							<span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-500"></span>
