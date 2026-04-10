@@ -1,3 +1,59 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+	:root {
+		--surface: 255 255 255;
+		--surface-subtle: 248 250 252;
+		--border: 226 232 240;
+		--text-main: 15 23 42;
+		--text-muted: 100 116 139;
+	}
+
+	body {
+		@apply antialiased text-slate-900 bg-gray-50;
+	}
+}
+
+@layer components {
+	.card-surface {
+		@apply rounded-none border border-slate-200 bg-white shadow-sm;
+	}
+
+	.btn {
+		@apply inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition;
+	}
+
+	.btn-primary {
+		@apply btn bg-cyan-600 text-white hover:bg-cyan-700;
+	}
+
+	.btn-secondary {
+		@apply btn border border-slate-200 bg-white text-slate-700 hover:bg-slate-50;
+	}
+
+	.btn-ghost {
+		@apply btn text-slate-600 hover:bg-slate-100 hover:text-slate-900;
+	}
+
+	.input-control {
+		@apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600;
+	}
+
+	.shell-nav-link {
+		@apply rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900;
+	}
+
+	.shell-nav-link-active {
+		@apply bg-slate-900 text-white hover:bg-slate-800 hover:text-white;
+	}
+
+	.sidebar-link {
+		@apply flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100;
+	}
+
+	.sidebar-link-active {
+		@apply bg-cyan-50 font-semibold text-cyan-700 hover:bg-cyan-100;
+	}
+}

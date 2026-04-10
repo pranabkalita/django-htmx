@@ -2,12 +2,19 @@ from django import forms
 from django.contrib.auth.password_validation import validate_password
 
 
+def normalize_email(email):
+    return (email or '').strip().lower()
+
+
 class RegisterForm(forms.Form):
     first_name = forms.CharField(max_length=150)
     last_name = forms.CharField(max_length=150)
     email = forms.EmailField()
     password = forms.CharField(widget=forms.PasswordInput)
     confirm_password = forms.CharField(widget=forms.PasswordInput)
+
+    def clean_email(self):
+        return normalize_email(self.cleaned_data.get('email'))
 
     def clean_password(self):
         password = self.cleaned_data.get('password')
@@ -26,9 +33,15 @@ class LoginForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput)
     remember_me = forms.BooleanField(required=False)
 
+    def clean_email(self):
+        return normalize_email(self.cleaned_data.get('email'))
+
 
 class ForgotPasswordForm(forms.Form):
     email = forms.EmailField()
+
+    def clean_email(self):
+        return normalize_email(self.cleaned_data.get('email'))
 
 
 class ResetPasswordForm(forms.Form):

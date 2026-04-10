@@ -4,15 +4,20 @@
   {% load static %}
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="{{ app_name }} secure account platform">
+  <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+  <link rel="shortcut icon" href="{% static 'favicon.svg' %}">
   <title>{% block title %}{{ app_name }}{% endblock %}</title>
-  <script defer src="{% static 'js/htmx.min.js' %}"></script>
+  {% block head_extra %}{% endblock %}
   <link rel="stylesheet" href="{% static 'build/output.css' %}">
+  <script defer src="{% static 'js/htmx.min.js' %}"></script>
   <script defer src="{% static 'js/htmx_progress.js' %}"></script>
   <script defer src="{% static 'js/toasts.js' %}"></script>
   <script defer src="{% static 'js/auth_sidebar.js' %}"></script>
+  <script defer src="{% static 'js/confirm_actions.js' %}"></script>
 </head>
-<body class="bg-gray-50 text-gray-900">
-<div id="top-progress" class="fixed top-0 left-0 h-1 bg-indigo-600 w-0 z-50 transition-all duration-200"></div>
+<body class="font-sans bg-gray-50 text-gray-900 antialiased">
+<div id="top-progress" class="fixed top-0 left-0 h-1 bg-cyan-600 w-0 z-50 transition-all duration-200"></div>
 {% block body %}{% endblock %}
 </body>
 </html>

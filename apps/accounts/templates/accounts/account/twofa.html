@@ -6,8 +6,8 @@
 	<section class="grid grid-cols-1 gap-4 lg:grid-cols-12">
 		{% include 'accounts/account/partials/_settings_nav.html' with active_tab='twofa' %}
 
-		<div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:col-span-9">
-			<div class="mb-3 flex items-center justify-between">
+		<div class="card-surface rounded-3xl p-5 lg:col-span-9 lg:p-6">
+			<div class="mb-5 flex items-center justify-between">
 				<div>
 					<h2 class="text-2xl font-semibold text-slate-900">2FA</h2>
 					<p class="text-sm text-slate-500">Add an extra layer of security with an authenticator app.</p>
@@ -20,43 +20,43 @@
 			</div>
 
 			{% if not twofa.is_enabled %}
-				<div class="rounded-lg border border-emerald-100 bg-emerald-50/40 p-3">
+				<div class="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4">
 					{% if not qr_uri %}
 						<form method="post" class="flex flex-wrap items-center justify-between gap-3">
 							{% csrf_token %}
 							<input type="hidden" name="action" value="start_enable">
 							<p class="text-sm text-slate-700">2FA is currently <span class="font-semibold">disabled</span> for this account.</p>
-							<button class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">Enable 2FA</button>
+							<button class="btn-primary px-4 py-2">Enable 2FA</button>
 						</form>
 					{% else %}
 						<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 							<div>
 								<p class="text-sm text-slate-700">Scan this QR code in Google Authenticator/Authy, then enter your 6-digit code.</p>
-								<img class="mt-3 w-44 rounded-lg border border-slate-200 bg-white p-2" src="{{ qr_uri }}" alt="2FA QR code">
+								<img class="mt-3 w-44 rounded-2xl border border-slate-200 bg-white p-2" src="{{ qr_uri }}" alt="2FA QR code">
 							</div>
-							<form method="post" class="space-y-3">
+							<form method="post" class="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
 								{% csrf_token %}
 								<input type="hidden" name="action" value="confirm_enable">
 								<label for="{{ otp_form.otp_code.id_for_label }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Authenticator code</label>
-								<input type="text" name="{{ otp_form.otp_code.html_name }}" id="{{ otp_form.otp_code.id_for_label }}" maxlength="6" class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500" placeholder="123456" required>
+								<input type="text" name="{{ otp_form.otp_code.html_name }}" id="{{ otp_form.otp_code.id_for_label }}" maxlength="6" class="input-control" placeholder="123456" required>
 								{% if otp_form.otp_code.errors %}<p class="text-xs text-rose-600">{{ otp_form.otp_code.errors|striptags }}</p>{% endif %}
-								<button class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">Confirm & Enable</button>
+								<button class="btn-primary px-4 py-2">Confirm & Enable</button>
 							</form>
 						</div>
 					{% endif %}
 				</div>
 			{% else %}
-				<div class="rounded-lg border border-emerald-100 bg-emerald-50/40 p-3">
+				<div class="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4">
 					<form method="post" class="space-y-3">
 						{% csrf_token %}
 						<input type="hidden" name="action" value="disable">
 						<p class="text-sm text-slate-700">2FA is currently enabled for this account. Enter a valid code to disable it.</p>
 						<div class="max-w-sm">
 							<label for="{{ otp_form.otp_code.id_for_label }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Authenticator code</label>
-							<input type="text" name="{{ otp_form.otp_code.html_name }}" id="{{ otp_form.otp_code.id_for_label }}" maxlength="6" class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500" placeholder="123456" required>
+							<input type="text" name="{{ otp_form.otp_code.html_name }}" id="{{ otp_form.otp_code.id_for_label }}" maxlength="6" class="input-control" placeholder="123456" required>
 							{% if otp_form.otp_code.errors %}<p class="text-xs text-rose-600">{{ otp_form.otp_code.errors|striptags }}</p>{% endif %}
 						</div>
-						<button class="rounded-md bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500">Disable 2FA</button>
+						<button class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500">Disable 2FA</button>
 					</form>
 				</div>
 			{% endif %}

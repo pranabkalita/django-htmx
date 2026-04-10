@@ -7,11 +7,21 @@ from django.utils import timezone
 from apps.accounts.models import EmailVerificationToken, PasswordResetToken, SecurityEvent, User
 
 
+def normalize_email_input(email):
+    return (email or '').strip().lower()
+
+
 def authenticate_user(email, password):
-    user = authenticate(email=email, password=password)
-    if not user:
+    normalized_email = normalize_email_input(email)
+    user = authenticate(email=normalized_email, password=password)
+    if user:
+        return User.objects.select_related('twofa_settings').filter(id=user.id).first()
+
+    # Legacy rows may contain mixed-case emails in case-sensitive databases.
+    candidate = User.objects.filter(email__iexact=normalized_email).first()
+    if not candidate or not candidate.check_password(password) or not candidate.is_active:
         return None
-    return User.objects.select_related('twofa_settings').filter(id=user.id).first()
+    return User.objects.select_related('twofa_settings').filter(id=candidate.id).first()
 
 
 def record_security_event(*, event_type, user=None, ip_address=None):
@@ -41,6 +51,7 @@ def build_password_reset(user):
 
 def complete_password_reset(record, new_password):
     record.user.set_password(new_password)
-    record.user.save(update_fields=['password'])
+    record.user.is_active = True
+    record.user.save(update_fields=['password', 'is_active'])
     record.used_at = timezone.now()
     record.save(update_fields=['used_at'])

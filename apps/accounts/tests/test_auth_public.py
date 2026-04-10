@@ -73,6 +73,20 @@ class AuthPublicViewTests(HTMXAssertionsMixin, TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Email already registered.')
 
+    def test_register_duplicate_email_with_case_variation_shows_validation_error(self):
+        response = self.client.post(
+            reverse('accounts:register'),
+            {
+                'first_name': 'Duplicate',
+                'last_name': 'User',
+                'email': 'Verified@Example.com',
+                'password': 'StrongPass123!',
+                'confirm_password': 'StrongPass123!',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Email already registered.')
+
     def test_login_invalid_credentials_records_security_event(self):
         response = self.client.post(
             reverse('accounts:login'),
@@ -104,6 +118,17 @@ class AuthPublicViewTests(HTMXAssertionsMixin, TestCase):
         self.assertIn(SESSION_STARTED_AT_KEY, session)
         self.assertIn(SESSION_LAST_ACTIVITY_AT_KEY, session)
         self.assertFalse(session.get(SESSION_BROWSER_CLOSE_KEY, True))
+        self.assertTrue(SecurityEvent.objects.filter(event_type='login_success', user=self.verified_user).exists())
+
+    def test_login_success_with_mixed_case_and_whitespace_email(self):
+        response = self.client.post(
+            reverse('accounts:login'),
+            {'email': '  Verified@Example.com  ', 'password': 'StrongPass123!', 'remember_me': True},
+            HTTP_HX_REQUEST='true',
+            HTTP_HX_CURRENT_URL='http://testserver/account/login/',
+        )
+        self.assertEqual(response.status_code, 204)
+        self.assert_hx_location(response, reverse('accounts:dashboard'), target='body', swap='innerHTML')
         self.assertTrue(SecurityEvent.objects.filter(event_type='login_success', user=self.verified_user).exists())
 
     def test_login_with_2fa_routes_to_challenge(self):
@@ -138,6 +163,19 @@ class AuthPublicViewTests(HTMXAssertionsMixin, TestCase):
         self.assertTrue(self.unverified_user.is_email_verified)
         self.assertIsNotNone(token.used_at)
 
+    def test_verify_email_accepts_token_with_qp_artifact(self):
+        token = EmailVerificationToken.objects.create(
+            user=self.unverified_user,
+            token='verifytoken123',
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        response = self.client.get(reverse('accounts:verify_email', kwargs={'token': 'verify=token123'}))
+        self.assertRedirects(response, reverse('accounts:login'))
+        self.unverified_user.refresh_from_db()
+        token.refresh_from_db()
+        self.assertTrue(self.unverified_user.is_email_verified)
+        self.assertIsNotNone(token.used_at)
+
     def test_verify_email_expired_token_redirects(self):
         token = EmailVerificationToken.objects.create(
             user=self.unverified_user,
@@ -161,6 +199,34 @@ class AuthPublicViewTests(HTMXAssertionsMixin, TestCase):
         self.assert_hx_location(response, reverse('accounts:login'))
         self.assertEqual(PasswordResetToken.objects.filter(user=self.verified_user, used_at__isnull=True).count(), 1)
         mock_delay.assert_called_once()
+
+    @patch('apps.accounts.views.auth_public.enqueue_email_job')
+    def test_forgot_password_mixed_case_and_whitespace_email_creates_reset_token(self, mock_delay):
+        response = self.client.post(
+            reverse('accounts:forgot_password'),
+            {'email': '  Verified@Example.com  '},
+            HTTP_HX_REQUEST='true',
+        )
+
+        self.assertEqual(response.status_code, 204)
+        self.assert_hx_location(response, reverse('accounts:login'))
+        self.assertEqual(PasswordResetToken.objects.filter(user=self.verified_user, used_at__isnull=True).count(), 1)
+        mock_delay.assert_called_once()
+
+    @patch('apps.accounts.views.auth_public.enqueue_email_job')
+    def test_forgot_password_unverified_user_sends_verification_instead_of_reset(self, mock_delay):
+        response = self.client.post(
+            reverse('accounts:forgot_password'),
+            {'email': self.unverified_user.email},
+            HTTP_HX_REQUEST='true',
+        )
+
+        self.assertEqual(response.status_code, 204)
+        self.assert_hx_location(response, reverse('accounts:login'))
+        self.assertEqual(PasswordResetToken.objects.filter(user=self.unverified_user, used_at__isnull=True).count(), 0)
+        self.assertEqual(EmailVerificationToken.objects.filter(user=self.unverified_user, used_at__isnull=True).count(), 1)
+        mock_delay.assert_called_once()
+        self.assertIn('Verify your account', mock_delay.call_args.kwargs['subject'])
 
     @patch('apps.accounts.views.auth_public.enqueue_email_job')
     def test_forgot_password_unknown_email_returns_generic_response(self, mock_delay):
@@ -221,6 +287,138 @@ class AuthPublicViewTests(HTMXAssertionsMixin, TestCase):
         self.assertTrue(self.verified_user.check_password('NewStrongPass123!@'))
         self.assertIsNotNone(token.used_at)
         self.assertTrue(SecurityEvent.objects.filter(event_type='password_reset_completed', user=self.verified_user).exists())
+
+    def test_reset_password_accepts_token_with_qp_artifact(self):
+        token = PasswordResetToken.objects.create(
+            user=self.verified_user,
+            token='resettoken123',
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+
+        response = self.client.post(
+            reverse('accounts:reset_password', kwargs={'token': 'reset=token123'}),
+            {
+                'new_password': 'NewStrongPass123!@',
+                'confirm_new_password': 'NewStrongPass123!@',
+            },
+            HTTP_HX_REQUEST='true',
+        )
+
+        self.assertEqual(response.status_code, 204)
+        self.assert_hx_location(response, reverse('accounts:login'))
+        self.verified_user.refresh_from_db()
+        token.refresh_from_db()
+        self.assertTrue(self.verified_user.check_password('NewStrongPass123!@'))
+        self.assertIsNotNone(token.used_at)
+
+    def test_reset_password_does_not_verify_user_email(self):
+        # User starts unverified
+        self.unverified_user.is_email_verified = False
+        self.unverified_user.save(update_fields=['is_email_verified'])
+        
+        token = PasswordResetToken.objects.create(
+            user=self.unverified_user,
+            token='reset-verify-token',
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+
+        response = self.client.post(
+            reverse('accounts:reset_password', kwargs={'token': token.token}),
+            {
+                'new_password': 'NewStrongPass123!@',
+                'confirm_new_password': 'NewStrongPass123!@',
+            },
+            HTTP_HX_REQUEST='true',
+        )
+
+        self.assertEqual(response.status_code, 204)
+        self.unverified_user.refresh_from_db()
+        self.assertFalse(self.unverified_user.is_email_verified)
+        self.assertTrue(self.unverified_user.check_password('NewStrongPass123!@'))
+
+    def test_reset_password_reactivates_inactive_user(self):
+        self.verified_user.is_active = False
+        self.verified_user.save(update_fields=['is_active'])
+
+        token = PasswordResetToken.objects.create(
+            user=self.verified_user,
+            token='reset-reactivate-token',
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+
+        response = self.client.post(
+            reverse('accounts:reset_password', kwargs={'token': token.token}),
+            {
+                'new_password': 'ReactivatedPass123!@',
+                'confirm_new_password': 'ReactivatedPass123!@',
+            },
+            HTTP_HX_REQUEST='true',
+        )
+
+        self.assertEqual(response.status_code, 204)
+        self.assert_hx_location(response, reverse('accounts:login'))
+        self.verified_user.refresh_from_db()
+        self.assertTrue(self.verified_user.is_active)
+
+        login_response = self.client.post(
+            reverse('accounts:login'),
+            {'email': self.verified_user.email, 'password': 'ReactivatedPass123!@', 'remember_me': True},
+            HTTP_HX_REQUEST='true',
+            HTTP_HX_CURRENT_URL='http://testserver/account/login/',
+        )
+        self.assertEqual(login_response.status_code, 204)
+        self.assert_hx_location(login_response, reverse('accounts:dashboard'), target='body', swap='innerHTML')
+
+    def test_login_blocked_after_password_reset_for_unverified_user(self):
+        # Start with unverified user
+        self.unverified_user.is_email_verified = False
+        self.unverified_user.set_password('OldPassword123!')
+        self.unverified_user.save(update_fields=['is_email_verified', 'password'])
+        
+        # Reset password
+        token = PasswordResetToken.objects.create(
+            user=self.unverified_user,
+            token='reset-login-token',
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        
+        from apps.accounts.services.auth_service import complete_password_reset
+        complete_password_reset(token, 'NewPassword123!')
+        
+        # Login should still be blocked while user remains unverified
+        response = self.client.post(
+            reverse('accounts:login'),
+            {'email': self.unverified_user.email, 'password': 'NewPassword123!', 'remember_me': False},
+            HTTP_HX_REQUEST='true',
+        )
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Please verify your email before login.')
+        self.assertTrue(SecurityEvent.objects.filter(event_type='login_blocked_unverified', user=self.unverified_user).exists())
+
+    def test_login_blocked_after_password_reset_with_mixed_case_email(self):
+        self.unverified_user.is_email_verified = False
+        self.unverified_user.set_password('OldPassword123!')
+        self.unverified_user.save(update_fields=['is_email_verified', 'password'])
+
+        token = PasswordResetToken.objects.create(
+            user=self.unverified_user,
+            token='reset-login-token-mixed-case',
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+
+        from apps.accounts.services.auth_service import complete_password_reset
+        complete_password_reset(token, 'NewPassword123!')
+
+        response = self.client.post(
+            reverse('accounts:login'),
+            {'email': '  Pending@Example.com  ', 'password': 'NewPassword123!', 'remember_me': False},
+            HTTP_HX_REQUEST='true',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Please verify your email before login.')
+        self.assertTrue(SecurityEvent.objects.filter(event_type='login_blocked_unverified', user=self.unverified_user).exists())
 
     def test_reset_password_expired_token_redirects_to_forgot(self):
         token = PasswordResetToken.objects.create(

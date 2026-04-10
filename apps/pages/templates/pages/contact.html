@@ -1,4 +1,87 @@
 {% extends 'layouts/guest.html' %}
 {% block content %}
-<h1 class="text-3xl font-bold">Contact Us</h1>
+<div class="mx-auto max-w-6xl px-2 py-12">
+	<!-- Hero Section -->
+	<div class="mb-16 text-center">
+		<h1 class="text-5xl font-extrabold text-slate-900">
+			Contact Us
+		</h1>
+		<p class="mt-2 text-xl text-slate-600">Have questions? We'd love to hear from you.</p>
+
+	<!-- Contact Information -->
+	<div class="grid grid-cols-1 gap-8 mb-16 md:grid-cols-2">
+		<div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+			<div class="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-100">
+				<span class="text-xl">📧</span>
+			</div>
+			<h3 class="text-xl font-semibold text-slate-900">Email</h3>
+			<p class="mt-2 text-slate-600">
+				For general inquiries, support, and partnership opportunities:
+			</p>
+			<p class="mt-1 text-cyan-600 font-semibold">
+				support@example.com
+			</p>
+		</div>
+
+		<div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+			<div class="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-100">
+				<span class="text-xl">🔒</span>
+			</div>
+			<h3 class="text-xl font-semibold text-slate-900">Security Reports</h3>
+			<p class="mt-2 text-slate-600">
+				Found a vulnerability? Please report responsibly:
+			</p>
+			<p class="mt-1 text-cyan-600 font-semibold">
+				security@example.com
+			</p>
+		</div>
+	</div>
+
+	<!-- FAQ / Common Questions -->
+	<div class="mb-16">
+		<h2 class="mb-8 text-3xl font-bold text-slate-900">Quick Answers</h2>
+		<div class="space-y-4">
+			<div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+				<h3 class="font-semibold text-slate-900">Is {{ app_name }} free to use?</h3>
+				<p class="mt-2 text-slate-600">
+					We offer a free tier with core features. Contact us to learn about enterprise plans and custom solutions.
+				</p>
+			</div>
+			<div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+				<h3 class="font-semibold text-slate-900">How do I report a bug?</h3>
+				<p class="mt-2 text-slate-600">
+					Found an issue? Email our support team at support@example.com with details and environment information, and we'll investigate promptly.
+				</p>
+			</div>
+			<div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+				<h3 class="font-semibold text-slate-900">Do you offer API access?</h3>
+				<p class="mt-2 text-slate-600">
+					Yes. Our REST API is documented and production-ready. Sign up for an account to explore the full API reference.
+				</p>
+			</div>
+			<div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+				<h3 class="font-semibold text-slate-900">Can I integrate {{ app_name }} with my app?</h3>
+				<p class="mt-2 text-slate-600">
+					Absolutely. We provide SDKs, webhooks, and detailed integration guides. Reach out to discuss your use case.
+				</p>
+			</div>
+		</div>
+	</div>
+
+	<!-- Follow-up CTA -->
+	<div class="rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 to-cyan-50 p-8 text-center shadow-sm">
+		<h2 class="text-2xl font-bold text-slate-900">Let's chat</h2>
+		<p class="mt-2 text-slate-600">Create an account or log in to start using {{ app_name }} today.</p>
+		<div class="mt-6 flex flex-wrap justify-center gap-4">
+			<a href="{% url 'accounts:register' %}" hx-get="{% url 'accounts:register' %}" hx-target="#content" hx-push-url="true"
+				 class="btn-primary">
+				Get Started
+			</a>
+			<a href="{% url 'pages:landing' %}" hx-get="{% url 'pages:landing' %}" hx-target="#content" hx-push-url="true"
+				 class="btn-secondary">
+				Back to Home
+			</a>
+		</div>
+	</div>
+</div>
 {% endblock %}

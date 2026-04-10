@@ -1,4 +1,111 @@
 {% extends 'layouts/guest.html' %}
 {% block content %}
-<h1 class="text-3xl font-bold">About Us</h1>
+<div class="mx-auto max-w-6xl px-2 py-12">
+	<!-- Hero Section -->
+	<div class="mb-16 text-center">
+		<h1 class="text-5xl font-extrabold text-slate-900">
+			About Us
+		</h1>
+		<p class="mt-2 text-xl text-slate-600">{{ app_name }} — Building secure identity management for modern teams</p>
+
+	<!-- Mission & Values -->
+	<div class="grid grid-cols-1 gap-8 mb-16 lg:grid-cols-2">
+		<div class="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-8 shadow-sm">
+			<h2 class="text-2xl font-bold text-slate-900">Our Mission</h2>
+			<p class="mt-4 text-slate-700">
+				We believe secure authentication shouldn't require compromise. Our mission is to provide a complete, modern identity platform that teams trust with their most sensitive operations—without adding friction to their workflow.
+			</p>
+		</div>
+		<div class="rounded-2xl border border-slate-200 bg-card-surface p-8">
+			<h2 class="text-2xl font-bold text-slate-900">What We Offer</h2>
+			<ul class="mt-4 space-y-3 text-slate-700">
+				<li class="flex items-start gap-3">
+					<span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-cyan-500"></span>
+					<span><strong>Email Verification:</strong> Reliable, non-intrusive verification at signup</span>
+				</li>
+				<li class="flex items-start gap-3">
+					<span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-cyan-500"></span>
+					<span><strong>Two-Factor Authentication:</strong> OTP + backup codes for account recovery</span>
+				</li>
+				<li class="flex items-start gap-3">
+					<span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-cyan-500"></span>
+					<span><strong>Session Management:</strong> Control active sessions and device access</span>
+				</li>
+			</ul>
+		</div>
+	</div>
+
+	<!-- Key Principles -->
+	<div class="mb-16">
+		<h2 class="mb-8 text-3xl font-bold text-slate-900">Design Principles</h2>
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+			<div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+				<div class="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-100">
+					<span class="text-lg font-bold text-cyan-700">🔒</span>
+				</div>
+				<h3 class="text-lg font-semibold text-slate-900">Secure by Default</h3>
+				<p class="mt-2 text-sm text-slate-600">
+					No weak defaults. Every setting is configured for maximum security with minimal configuration burden.
+				</p>
+			</div>
+			<div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+				<div class="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-100">
+					<span class="text-lg font-bold text-cyan-700">⚡</span>
+				</div>
+				<h3 class="text-lg font-semibold text-slate-900">Developer First</h3>
+				<p class="mt-2 text-sm text-slate-600">
+					Clear APIs, predictable behavior, and comprehensive audit trails make integration seamless.
+				</p>
+			</div>
+			<div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+				<div class="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-100">
+					<span class="text-lg font-bold text-cyan-700">📋</span>
+				</div>
+				<h3 class="text-lg font-semibold text-slate-900">Audit Ready</h3>
+				<p class="mt-2 text-sm text-slate-600">
+					Every sensitive action is logged and accessible. Compliance reporting built in from day one.
+				</p>
+			</div>
+		</div>
+	</div>
+
+	<!-- Features Spotlight -->
+	<div class="mb-16">
+		<h2 class="mb-8 text-3xl font-bold text-slate-900">Key Features</h2>
+		<div class="space-y-4">
+			<div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+				<h3 class="font-semibold text-slate-900">Complete User Lifecycle</h3>
+				<p class="mt-2 text-slate-600">From registration to account deactivation, every step is designed to be secure, transparent, and reversible when needed.</p>
+			</div>
+			<div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+				<h3 class="font-semibold text-slate-900">Session Intelligence</h3>
+				<p class="mt-2 text-slate-600">Users see where they're logged in, can review sessions by device/location, and revoke active sessions anytime—without losing their current work.</p>
+			</div>
+			<div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+				<h3 class="font-semibold text-slate-900">Automatic Session Timeout</h3>
+				<p class="mt-2 text-slate-600">Configurable inactivity timeout with graceful warnings and easy re-authentication, because security should not mean frustration.</p>
+			</div>
+			<div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+				<h3 class="font-semibold text-slate-900">Recovery by Design</h3>
+				<p class="mt-2 text-slate-600">Forget your password? Lost 2FA device? Background job system ensures recovery flows work reliably, even under load.</p>
+			</div>
+		</div>
+	</div>
+
+	<!-- CTA Section -->
+	<div class="rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 to-cyan-50 p-8 text-center shadow-sm">
+		<h2 class="text-2xl font-bold text-slate-900">Ready to give {{ app_name }} a try?</h2>
+		<p class="mt-2 text-slate-600">Get started in minutes with our simple registration flow.</p>
+		<div class="mt-6 flex flex-wrap justify-center gap-4">
+			<a href="{% url 'accounts:register' %}" hx-get="{% url 'accounts:register' %}" hx-target="#content" hx-push-url="true"
+				 class="btn-primary">
+				Create Account
+			</a>
+			<a href="{% url 'pages:landing' %}" hx-get="{% url 'pages:landing' %}" hx-target="#content" hx-push-url="true"
+				 class="btn-secondary">
+				Back to Home
+			</a>
+		</div>
+	</div>
+</div>
 {% endblock %}

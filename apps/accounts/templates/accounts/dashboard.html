@@ -1,73 +1,121 @@
 {% extends 'layouts/auth.html' %}
 {% block content %}
-<div class="space-y-4">
-	<!-- Placeholder finance widgets remain until real dashboard data exists. -->
-	<div class="overflow-hidden rounded-xl border border-emerald-800 bg-gradient-to-r from-teal-800 to-emerald-700 p-4 text-white md:p-5">
-		<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+<div class="space-y-6">
+	<section class="overflow-hidden rounded-none bg-slate-900 p-6 text-white shadow-sm lg:p-7">
+		<div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
 			<div>
-				<p class="text-[11px] uppercase tracking-wider text-emerald-100">Total Balance</p>
-				<p class="mt-1 text-3xl font-bold leading-none md:text-4xl">$320,845.20</p>
-				<p class="mt-1 text-xs text-emerald-100">+15.8% this month</p>
+				<p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-200">Overview</p>
+				<h1 class="mt-2 text-3xl font-bold leading-tight">Welcome back, {{ request.user.first_name|default:request.user.email }}.</h1>
+				<p class="mt-3 max-w-2xl text-sm leading-6 text-slate-300">Manage profile details, strengthen account security, and review active devices from a single authenticated workspace.</p>
 			</div>
-			<div class="flex flex-wrap items-center gap-2 sm:justify-end">
-				<button class="rounded-md bg-emerald-500/90 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-400">+ Add</button>
-				<button class="rounded-md bg-slate-700/70 px-3 py-1 text-xs font-semibold text-white hover:bg-slate-700">Send</button>
-				<button class="rounded-md bg-slate-700/70 px-3 py-1 text-xs font-semibold text-white hover:bg-slate-700">Request</button>
+			<div class="flex flex-wrap gap-2">
+				<a href="{% url 'accounts:profile' %}" hx-get="{% url 'accounts:profile' %}" hx-target="#content" hx-push-url="true" class="btn-primary">Edit profile</a>
+				<a href="{% url 'accounts:twofa_settings' %}" hx-get="{% url 'accounts:twofa_settings' %}" hx-target="#content" hx-push-url="true" class="btn-secondary border-white/15 bg-white/10 text-white hover:bg-white/15">{% if twofa_enabled %}Review 2FA{% else %}Enable 2FA{% endif %}</a>
 			</div>
 		</div>
-	</div>
+	</section>
 
-	<div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
-		<div class="rounded-xl border border-slate-200 p-4 lg:col-span-9">
-			<div class="mb-3 flex items-center justify-between">
-				<h2 class="text-sm font-semibold text-slate-800">Cash Flow</h2>
-				<span class="rounded-md bg-slate-100 px-2 py-1 text-[11px] text-slate-500">Manage</span>
-			</div>
-			<div class="flex h-40 items-end gap-1.5 rounded-lg bg-slate-50 p-3 sm:gap-2 sm:p-4">
-				<div class="w-3 rounded bg-teal-600" style="height:28%"></div>
-				<div class="w-3 rounded bg-teal-600" style="height:42%"></div>
-				<div class="w-3 rounded bg-emerald-500" style="height:24%"></div>
-				<div class="w-3 rounded bg-teal-600" style="height:61%"></div>
-				<div class="w-3 rounded bg-emerald-500" style="height:72%"></div>
-				<div class="w-3 rounded bg-teal-600" style="height:45%"></div>
-				<div class="w-3 rounded bg-teal-600" style="height:31%"></div>
-				<div class="w-3 rounded bg-emerald-500" style="height:52%"></div>
-				<div class="w-3 rounded bg-teal-600" style="height:47%"></div>
-				<div class="w-3 rounded bg-emerald-500" style="height:39%"></div>
-				<div class="w-3 rounded bg-teal-600" style="height:58%"></div>
-				<div class="w-3 rounded bg-teal-600" style="height:44%"></div>
-			</div>
+	<section class="grid grid-cols-1 gap-4 md:grid-cols-3">
+		<div class="card-surface rounded-none p-5">
+			<p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Account</p>
+			<p class="mt-3 text-lg font-semibold text-slate-900">{{ request.user.get_full_name|default:request.user.email }}</p>
+			<p class="mt-1 text-sm text-slate-500">Primary identity and profile details.</p>
+			<a href="{% url 'accounts:profile' %}" hx-get="{% url 'accounts:profile' %}" hx-target="#content" hx-push-url="true" class="mt-4 inline-flex text-sm font-semibold text-cyan-700 hover:text-cyan-800">Open profile</a>
 		</div>
-		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1 lg:space-y-0 lg:col-span-3">
-			<div class="rounded-xl border border-slate-200 p-4">
-				<p class="text-[11px] uppercase text-slate-400">Income</p>
-				<p class="mt-1 text-3xl font-bold leading-none text-slate-800 xl:text-4xl">$12,378.20</p>
-				<p class="mt-1 text-xs text-emerald-600">+5.0%</p>
-			</div>
-			<div class="rounded-xl border border-slate-200 p-4">
-				<p class="text-[11px] uppercase text-slate-400">Expense</p>
-				<p class="mt-1 text-3xl font-bold leading-none text-slate-800 xl:text-4xl">$5,788.21</p>
-				<p class="mt-1 text-xs text-rose-500">-7.5%</p>
-			</div>
+		<div class="card-surface rounded-none p-5">
+			<p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">2FA</p>
+			<p class="mt-3 text-lg font-semibold text-slate-900">{% if twofa_enabled %}Enabled{% else %}Disabled{% endif %}</p>
+			<p class="mt-1 text-sm text-slate-500">Authenticator-based verification for sensitive actions.</p>
+			<a href="{% url 'accounts:twofa_settings' %}" hx-get="{% url 'accounts:twofa_settings' %}" hx-target="#content" hx-push-url="true" class="mt-4 inline-flex text-sm font-semibold text-cyan-700 hover:text-cyan-800">{% if twofa_enabled %}Manage verification{% else %}Set up verification{% endif %}</a>
 		</div>
-	</div>
+		<div class="card-surface rounded-none p-5">
+			<p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Sessions</p>
+			<p class="mt-3 text-lg font-semibold text-slate-900">Device access</p>
+			<p class="mt-1 text-sm text-slate-500">Review active logins and revoke devices you no longer trust.</p>
+			<a href="{% url 'accounts:sessions' %}" hx-get="{% url 'accounts:sessions' %}" hx-target="#content" hx-push-url="true" class="mt-4 inline-flex text-sm font-semibold text-cyan-700 hover:text-cyan-800">Review sessions</a>
+		</div>
+	</section>
 
-	<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-		<div class="rounded-xl border border-slate-200 p-4">
-			<p class="text-[11px] uppercase tracking-wide text-slate-400">Business Account</p>
-			<p class="mt-2 text-4xl font-bold leading-none text-slate-800">$8,672.20</p>
-			<p class="mt-1 text-xs text-emerald-600">+16.0%</p>
+	<section class="grid grid-cols-1 gap-4 lg:grid-cols-12">
+		<div class="card-surface rounded-none p-5 lg:col-span-7 lg:p-6">
+			<div class="flex items-start justify-between gap-3">
+				<div>
+					<p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Security Checklist</p>
+					<h2 class="mt-2 text-xl font-semibold text-slate-900">Keep the account in a healthy state.</h2>
+				</div>
+				<span class="rounded-none bg-cyan-50 px-3 py-1 text-[11px] font-semibold text-cyan-700">Recommended</span>
+			</div>
+
+			<div class="mt-5 space-y-3">
+				<div class="rounded-none border border-slate-200 bg-slate-50/80 p-4">
+					<div class="flex items-center justify-between gap-3">
+						<div>
+							<p class="text-sm font-semibold text-slate-900">Verify profile details</p>
+							<p class="mt-1 text-sm text-slate-500">Keep your first and last name current so audit and notification flows stay accurate.</p>
+						</div>
+						<a href="{% url 'accounts:profile' %}" hx-get="{% url 'accounts:profile' %}" hx-target="#content" hx-push-url="true" class="btn-secondary shrink-0">Review</a>
+					</div>
+				</div>
+
+				<div class="rounded-none border border-slate-200 bg-white p-4">
+					<div class="flex items-center justify-between gap-3">
+						<div>
+							<p class="text-sm font-semibold text-slate-900">{% if twofa_enabled %}2FA is protecting the account{% else %}Turn on two-factor authentication{% endif %}</p>
+							<p class="mt-1 text-sm text-slate-500">{% if twofa_enabled %}Review your authenticator setup and confirm recovery access still works.{% else %}Add an authenticator app to reduce the impact of password reuse or phishing.{% endif %}</p>
+						</div>
+						<a href="{% url 'accounts:twofa_settings' %}" hx-get="{% url 'accounts:twofa_settings' %}" hx-target="#content" hx-push-url="true" class="btn-secondary shrink-0">{% if twofa_enabled %}Inspect{% else %}Enable{% endif %}</a>
+					</div>
+				</div>
+
+				<div class="rounded-none border border-slate-200 bg-white p-4">
+					<div class="flex items-center justify-between gap-3">
+						<div>
+							<p class="text-sm font-semibold text-slate-900">Review device sessions</p>
+							<p class="mt-1 text-sm text-slate-500">Check for unfamiliar browsers, stale sessions, or access on devices you no longer control.</p>
+						</div>
+						<a href="{% url 'accounts:sessions' %}" hx-get="{% url 'accounts:sessions' %}" hx-target="#content" hx-push-url="true" class="btn-secondary shrink-0">Open</a>
+					</div>
+				</div>
+			</div>
 		</div>
-		<div class="rounded-xl border border-slate-200 p-4">
-			<p class="text-[11px] uppercase tracking-wide text-slate-400">Security Status</p>
-			<p class="mt-2 text-xl font-semibold text-slate-800">2FA {% if twofa_enabled %}Enabled{% else %}Disabled{% endif %}</p>
-			<a href="{% url 'accounts:twofa_settings' %}" hx-get="{% url 'accounts:twofa_settings' %}" hx-target="#content" hx-push-url="true" class="mt-1 inline-block text-xs font-semibold text-emerald-600 hover:text-emerald-700">Configure 2FA</a>
+
+		<div class="space-y-4 lg:col-span-5">
+			<div class="card-surface rounded-none p-5">
+				<p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Quick Actions</p>
+				<div class="mt-4 grid gap-3">
+					<a href="{% url 'accounts:change_password' %}" hx-get="{% url 'accounts:change_password' %}" hx-target="#content" hx-push-url="true" class="rounded-none border border-slate-200 bg-slate-50 px-4 py-3 text-left hover:bg-slate-100">
+						<p class="text-sm font-semibold text-slate-900">Change password</p>
+						<p class="mt-1 text-sm text-slate-500">Rotate credentials when needed.</p>
+					</a>
+					<a href="{% url 'accounts:sessions' %}" hx-get="{% url 'accounts:sessions' %}" hx-target="#content" hx-push-url="true" class="rounded-none border border-slate-200 bg-slate-50 px-4 py-3 text-left hover:bg-slate-100">
+						<p class="text-sm font-semibold text-slate-900">Review sessions</p>
+						<p class="mt-1 text-sm text-slate-500">Audit and revoke active devices.</p>
+					</a>
+					<a href="{% url 'accounts:deactivate_account' %}" hx-get="{% url 'accounts:deactivate_account' %}" hx-target="#content" hx-push-url="true" class="rounded-none border border-rose-200 bg-rose-50/70 px-4 py-3 text-left hover:bg-rose-100">
+						<p class="text-sm font-semibold text-rose-700">Deactivate account</p>
+						<p class="mt-1 text-sm text-rose-600">Last-resort access shutdown.</p>
+					</a>
+				</div>
+			</div>
+
+			<div class="card-surface rounded-none p-5">
+				<p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Status</p>
+				<div class="mt-4 space-y-3">
+					<div class="flex items-center justify-between rounded-none bg-slate-50 px-4 py-3">
+						<span class="text-sm text-slate-500">Email</span>
+						<span class="text-sm font-semibold text-slate-900">{{ request.user.email }}</span>
+					</div>
+					<div class="flex items-center justify-between rounded-none bg-slate-50 px-4 py-3">
+						<span class="text-sm text-slate-500">Verification</span>
+						<span class="rounded-none bg-cyan-50 px-2 py-1 text-[11px] font-semibold text-cyan-700">Protected</span>
+					</div>
+					<div class="flex items-center justify-between rounded-none bg-slate-50 px-4 py-3">
+						<span class="text-sm text-slate-500">2FA</span>
+						<span class="text-sm font-semibold {% if twofa_enabled %}text-emerald-600{% else %}text-amber-700{% endif %}">{% if twofa_enabled %}Enabled{% else %}Pending{% endif %}</span>
+					</div>
+				</div>
+			</div>
 		</div>
-		<div class="rounded-xl border border-slate-200 p-4">
-			<p class="text-[11px] uppercase tracking-wide text-slate-400">Active Sessions</p>
-			<p class="mt-2 text-xl font-semibold text-slate-800">Manage your devices</p>
-			<a href="#" class="mt-1 inline-block text-xs font-semibold text-emerald-600 hover:text-emerald-700">Open sessions</a>
-		</div>
-	</div>
+	</section>
 </div>
 {% endblock %}

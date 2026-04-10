@@ -6,8 +6,8 @@
 	<section class="grid grid-cols-1 gap-4 lg:grid-cols-12">
 		{% include 'accounts/account/partials/_settings_nav.html' with active_tab='deactivate' %}
 
-		<div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:col-span-9">
-			<div class="mb-3 flex items-center justify-between">
+		<div class="rounded-3xl border border-rose-200 bg-white p-5 shadow-sm lg:col-span-9 lg:p-6">
+			<div class="mb-5 flex items-center justify-between">
 				<div>
 					<h2 class="text-2xl font-semibold text-slate-900">Deactivate Account</h2>
 					<p class="text-sm text-rose-600">This will disable your account access until reactivated by support.</p>
@@ -15,15 +15,16 @@
 				<span class="rounded-full bg-rose-50 px-2 py-1 text-[11px] font-semibold text-rose-600">Danger Zone</span>
 			</div>
 
-			<form method="post" class="space-y-3">
+			<form method="post" class="space-y-4">
 				{% csrf_token %}
-				<div>
+				<div class="rounded-2xl border border-rose-200 bg-rose-50/50 p-4">
 					<label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Confirm password</label>
 					<input type="password" name="password" placeholder="Enter your password to confirm" required
-								 class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-rose-400">
+							 class="input-control border-rose-200 focus:border-rose-400 focus:ring-rose-400">
 				</div>
+				<p class="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700">Deactivation removes your access immediately and requires support intervention to restore the account.</p>
 				<div class="flex justify-end pt-1">
-					<button type="submit" class="rounded-md bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500">Deactivate Account</button>
+					<button type="submit" class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500">Deactivate Account</button>
 				</div>
 			</form>
 		</div>

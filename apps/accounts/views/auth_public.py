@@ -2,8 +2,9 @@ from datetime import timedelta
 from django.contrib.auth import login
 from django.conf import settings
 from django.db import IntegrityError
+from django.http import Http404
 from django.http import HttpResponseForbidden
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.timezone import now
@@ -33,12 +34,29 @@ def _client_ip(request):
     return request.META.get('REMOTE_ADDR')
 
 
+def _normalize_link_token(token):
+    token = (token or '').strip()
+    # Raw MIME/QP logs can inject '=' soft-wrap markers when links are copied manually.
+    return token.replace('=', '')
+
+
+def _get_active_record_or_404(model, token):
+    normalized_token = _normalize_link_token(token)
+    record = model.objects.filter(token=normalized_token, used_at__isnull=True).first()
+    if not record:
+        raise Http404(f'No {model.__name__} matches the given query.')
+    return record
+
+
 @ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def register(request):
     if request.user.is_authenticated:
         return redirect(reverse('accounts:dashboard'))
     form = RegisterForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
+        if User.objects.filter(email__iexact=form.cleaned_data['email']).exists():
+            form.add_error('email', 'Email already registered.')
+            return render_htmx(request, 'accounts/register.html', 'accounts/partials/register_content.html', {'form': form}, shell='guest')
         try:
             user = register_user(
                 email=form.cleaned_data['email'],
@@ -52,7 +70,8 @@ def register(request):
             app_name = settings.APP_NAME
             text_body = (
                 f'Welcome to {app_name}, {user.first_name or user.email}.\n\n'
-                f'Verify your email address to activate your account:\n{verify_url}\n\n'
+                f'Click the link below to verify your email and activate your account:\n\n'
+                f'{verify_url}\n\n'
                 f'This link expires in 24 hours.\n\n'
                 f'If you did not create an account, you can safely ignore this email.\n\n'
                 f'{app_name}\n{site_url}\nSupport: {settings.DEFAULT_FROM_EMAIL}'
@@ -108,7 +127,7 @@ def login_view(request):
 
 
 def verify_email(request, token):
-    record = get_object_or_404(EmailVerificationToken, token=token, used_at__isnull=True)
+    record = _get_active_record_or_404(EmailVerificationToken, token)
     if record.expires_at < timezone.now():
         toasts.error(request, 'Verification link expired. Request a new verification email.')
         return htmx_redirect(request, reverse('accounts:login'), shell='guest')
@@ -126,16 +145,18 @@ def forgot_password(request):
         return redirect(reverse('accounts:dashboard'))
     form = ForgotPasswordForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
-        user = User.objects.filter(email=form.cleaned_data['email']).first()
-        if user:
+        user = User.objects.filter(email__iexact=form.cleaned_data['email']).first()
+        if user and user.is_email_verified:
             token = build_password_reset(user)
             reset_url = request.build_absolute_uri(reverse('accounts:reset_password', kwargs={'token': token.token}))
             site_url = request.build_absolute_uri('/').rstrip('/')
             app_name = settings.APP_NAME
+            # Plain text body with URL on separate line with no preceding text to avoid wrapping issues
             reset_text_body = (
                 f'Hi {user.first_name or user.email},\n\n'
                 f'We received a request to reset your {app_name} password.\n\n'
-                f'Reset your password using this link:\n{reset_url}\n\n'
+                f'Click the link below to reset your password:\n\n'
+                f'{reset_url}\n\n'
                 f'This link expires in 1 hour.\n\n'
                 f'If you did not request a password reset, you can safely ignore this email.\n\n'
                 f'{app_name}\n{site_url}\nSupport: {settings.DEFAULT_FROM_EMAIL}'
@@ -148,6 +169,32 @@ def forgot_password(request):
                 context={
                     'first_name': user.first_name or user.email,
                     'reset_url': reset_url,
+                    'site_url': site_url,
+                    'support_email': settings.DEFAULT_FROM_EMAIL,
+                    'year': now().year,
+                },
+            )
+        elif user:
+            token = build_email_verification(user)
+            verify_url = request.build_absolute_uri(reverse('accounts:verify_email', kwargs={'token': token.token}))
+            site_url = request.build_absolute_uri('/').rstrip('/')
+            app_name = settings.APP_NAME
+            text_body = (
+                f'Hi {user.first_name or user.email},\n\n'
+                f'Please verify your {app_name} account before resetting your password.\n\n'
+                f'Click the link below to verify your email:\n\n'
+                f'{verify_url}\n\n'
+                f'This link expires in 24 hours.\n\n'
+                f'{app_name}\n{site_url}\nSupport: {settings.DEFAULT_FROM_EMAIL}'
+            )
+            enqueue_email_job(
+                subject=f'Verify your account - {app_name}',
+                body=text_body,
+                recipients=[user.email],
+                html_template='accounts/emails/verify_email.html',
+                context={
+                    'first_name': user.first_name or user.email,
+                    'verify_url': verify_url,
                     'site_url': site_url,
                     'support_email': settings.DEFAULT_FROM_EMAIL,
                     'year': now().year,
@@ -172,7 +219,8 @@ def resend_verification(request):
         app_name = settings.APP_NAME
         text_body = (
             f'Hi {user.first_name or user.email},\n\n'
-            f'Use this link to verify your {app_name} account:\n{verify_url}\n\n'
+            f'Click the link below to verify your {app_name} account:\n\n'
+            f'{verify_url}\n\n'
             f'This link expires in 24 hours.\n\n'
             f'{app_name}\n{site_url}\nSupport: {settings.DEFAULT_FROM_EMAIL}'
         )
@@ -196,7 +244,7 @@ def resend_verification(request):
 
 @ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def reset_password(request, token):
-    record = get_object_or_404(PasswordResetToken, token=token, used_at__isnull=True)
+    record = _get_active_record_or_404(PasswordResetToken, token)
     form = ResetPasswordForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         if record.expires_at < timezone.now():
@@ -224,6 +272,13 @@ def twofa_challenge(request):
         if not user:
             request.session.pop('pre_2fa_remember_me', None)
             return redirect('accounts:login')
+        if not user.is_email_verified:
+            request.session.pop('pre_2fa_user_id', None)
+            request.session.pop('pre_2fa_expires_at', None)
+            request.session.pop('pre_2fa_remember_me', None)
+            record_security_event(event_type='login_blocked_unverified', user=user, ip_address=_client_ip(request))
+            toasts.warning(request, 'Please verify your email before login.')
+            return htmx_redirect(request, reverse('accounts:login'), shell='guest')
         if verify_otp(user.twofa_settings.secret, request.POST.get('otp_code', '')):
             login(request, user)
             request.session.cycle_key()

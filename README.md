@@ -475,6 +475,77 @@ This project explicitly restricts admin access to superusers. Ensure both flags 
 **Delete button is missing for my own superuser account**
 Expected behavior. The admin prevents self-deletion and deletion of the final remaining superuser to avoid accidental admin lockout.
 
+---
+
+## Deployment Checklist: Static + CSP
+
+Use this checklist before every production release to avoid missing assets and CSP runtime errors.
+
+### 1. Install and verify dependencies
+
+```bash
+pip install -r requirements/prod.txt
+```
+
+Confirm `whitenoise` is installed in the runtime environment.
+
+### 2. Build frontend assets
+
+```bash
+npm ci
+npm run build
+```
+
+This regenerates `static/build/output.css` from templates and `static/js` usage.
+
+### 3. Collect static files
+
+```bash
+python manage.py collectstatic --settings=config.settings.prod --noinput
+```
+
+Do this on every deploy that changes CSS/JS/images/icons.
+
+### 4. Validate critical static paths
+
+After deploy, verify these URLs return `200`:
+
+- `/static/build/output.css`
+- `/static/js/htmx.min.js`
+- `/static/js/htmx_progress.js`
+- `/static/js/toasts.js`
+- `/static/js/auth_sidebar.js`
+- `/static/js/confirm_actions.js`
+- `/favicon.ico` (should resolve to `/static/favicon.svg`)
+
+### 5. Keep CSP strict (recommended)
+
+Current policy intentionally keeps scripts strict:
+
+- `script-src 'self'`
+
+To remain compliant:
+
+- Do not add inline handlers (`onclick`, `onchange`, etc.).
+- Do not add inline `<script>` blocks unless you also implement a nonce/hash strategy.
+- Prefer `data-*` attributes + external JS event delegation (as used for confirm actions).
+
+### 6. Smoke test dynamic navigation
+
+Check these after login:
+
+- HTMX page navigation works after multiple swaps
+- Mobile hamburger and desktop sidebar toggle still work after navigation
+- Session revoke and logout flows still show confirmation and submit correctly
+
+### 7. Production settings sanity check
+
+```bash
+python manage.py check --settings=config.settings.prod
+```
+
+Then restart app workers/web server so new static manifest and settings are picked up.
+
 ## Notes
 - `MAIL_DRIVER=log` stores generated emails in `logs/mail/`.
 - `MAIL_DRIVER=smtp` sends via SMTP regardless of environment.

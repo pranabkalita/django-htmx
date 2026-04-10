@@ -29,28 +29,38 @@ def enqueue_email_job(*, subject, body, recipients, html_template=None, context=
 
         from apps.accounts.tasks.email_tasks import send_email_task
 
-        async_result = send_email_task.delay(**payload)
+        async_result = send_email_task.delay(job_id=job.id, **payload)
         job.task_id = async_result.id
         job.save(update_fields=['task_id', 'updated_at'])
 
     return job
 
 
-def mark_job_running(task_id):
-    if not task_id:
+def _job_update_queryset(*, task_id=None, job_id=None):
+    if job_id:
+        return BackgroundJob.objects.filter(id=job_id)
+    if task_id:
+        return BackgroundJob.objects.filter(task_id=task_id)
+    return BackgroundJob.objects.none()
+
+
+def mark_job_running(task_id=None, *, job_id=None):
+    qs = _job_update_queryset(task_id=task_id, job_id=job_id)
+    if not qs.exists():
         return
-    BackgroundJob.objects.filter(task_id=task_id).update(
+    qs.update(
         status=BackgroundJob.STATUS_RUNNING,
         started_at=timezone.now(),
         failure_reason='',
     )
 
 
-def mark_job_success(task_id, *, started_monotonic):
-    if not task_id:
+def mark_job_success(task_id=None, *, started_monotonic, job_id=None):
+    qs = _job_update_queryset(task_id=task_id, job_id=job_id)
+    if not qs.exists():
         return
     execution_ms = max(1, int((perf_counter() - started_monotonic) * 1000))
-    BackgroundJob.objects.filter(task_id=task_id).update(
+    qs.update(
         status=BackgroundJob.STATUS_SUCCESS,
         finished_at=timezone.now(),
         execution_ms=execution_ms,
@@ -59,10 +69,11 @@ def mark_job_success(task_id, *, started_monotonic):
     )
 
 
-def mark_job_failure(task_id, *, reason):
-    if not task_id:
+def mark_job_failure(task_id=None, *, reason, job_id=None):
+    qs = _job_update_queryset(task_id=task_id, job_id=job_id)
+    if not qs.exists():
         return
-    BackgroundJob.objects.filter(task_id=task_id).update(
+    qs.update(
         status=BackgroundJob.STATUS_FAILED,
         finished_at=timezone.now(),
         failure_reason=(reason or '')[:2000],
