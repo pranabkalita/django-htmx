@@ -3,6 +3,7 @@ import base64
 import hashlib
 from email.utils import formataddr
 
+from celery.schedules import crontab
 import environ
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -11,10 +12,31 @@ environ.Env.read_env(BASE_DIR / '.env', overwrite=True)
 
 SECRET_KEY = env('DJANGO_SECRET_KEY')
 APP_NAME = env('APP_NAME', default='YourAppName')
-FERNET_KEY = env('FERNET_KEY', default=base64.urlsafe_b64encode(hashlib.sha256(SECRET_KEY.encode()).digest()).decode())
+APP_BASE_URL = env('APP_BASE_URL', default='')
 DEBUG = env.bool('DJANGO_DEBUG', default=False)
+
+_fernet_key_raw = env('FERNET_KEY', default=None)
+if _fernet_key_raw is None:
+    if not DEBUG:
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured(
+            'FERNET_KEY must be set to an independent secret in production. '
+            'Generate one with: '
+            'python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"'
+        )
+    import warnings
+    warnings.warn(
+        'FERNET_KEY is not set; deriving from SECRET_KEY (development only). '
+        'Set FERNET_KEY to an independent Fernet key before deploying to production.',
+        RuntimeWarning,
+        stacklevel=1,
+    )
+    FERNET_KEY = base64.urlsafe_b64encode(hashlib.sha256(SECRET_KEY.encode()).digest()).decode()
+else:
+    FERNET_KEY = _fernet_key_raw
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['127.0.0.1', 'localhost'])
 CSRF_TRUSTED_ORIGINS = env.list('DJANGO_CSRF_TRUSTED_ORIGINS', default=[])
+TRUSTED_PROXY_IPS = env.list('TRUSTED_PROXY_IPS', default=[])
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -109,6 +131,10 @@ LOGIN_REDIRECT_URL = 'accounts:dashboard'
 LOGOUT_REDIRECT_URL = 'pages:landing'
 SESSION_IDLE_TIMEOUT = max(1, env.int('SESSION_IDLE_TIMEOUT', default=900))
 SESSION_ABSOLUTE_TIMEOUT = max(1, env.int('SESSION_ABSOLUTE_TIMEOUT', default=28800))
+LOGIN_FAILURE_THRESHOLD = max(1, env.int('LOGIN_FAILURE_THRESHOLD', default=5))
+LOGIN_FAILURE_BASE_LOCK_SECONDS = max(1, env.int('LOGIN_FAILURE_BASE_LOCK_SECONDS', default=30))
+LOGIN_FAILURE_MAX_LOCK_SECONDS = max(1, env.int('LOGIN_FAILURE_MAX_LOCK_SECONDS', default=900))
+LOGIN_FAILURE_WINDOW_SECONDS = max(1, env.int('LOGIN_FAILURE_WINDOW_SECONDS', default=86400))
 
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=True)
@@ -122,7 +148,15 @@ SECURE_HSTS_PRELOAD = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 X_FRAME_OPTIONS = 'DENY'
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# SECURE_PROXY_SSL_HEADER is intentionally set only in prod.py to prevent
+# spoofing when the application is not behind a trusted HTTPS proxy.
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
+RATELIMIT_USE_CACHE = 'default'
 
 DEFAULT_FROM_EMAIL = env('MAIL_FROM_EMAIL', default='no-reply@example.com')
 MAIL_FROM_NAME = env('MAIL_FROM_NAME', default=APP_NAME)
@@ -142,4 +176,13 @@ else:
 
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default=env('REDIS_URL', default='redis://127.0.0.1:6379/0'))
 CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default=env('REDIS_URL', default='redis://127.0.0.1:6379/0'))
-CELERY_IMPORTS = ('apps.accounts.tasks.email_tasks',)
+CELERY_IMPORTS = ('apps.accounts.tasks.email_tasks', 'apps.accounts.tasks.security_tasks')
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_BEAT_SCHEDULE = {
+    'cleanup-expired-auth-tokens': {
+        'task': 'apps.accounts.tasks.security_tasks.cleanup_expired_auth_tokens_task',
+        'schedule': crontab(minute=0, hour='*/6'),
+    },
+}

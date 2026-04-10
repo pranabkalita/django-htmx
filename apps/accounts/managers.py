@@ -2,6 +2,17 @@ from django.contrib.auth.base_user import BaseUserManager
 
 
 class UserManager(BaseUserManager):
+    use_in_migrations = True
+
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+
+    def with_deleted(self):
+        return super().get_queryset()
+
+    def deleted(self):
+        return self.with_deleted().filter(is_deleted=True)
+
     def _create_user(self, email, password, **extra_fields):
         if not email:
             raise ValueError('Email must be set')

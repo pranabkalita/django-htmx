@@ -1,8 +1,10 @@
 from django.conf import settings
 from django.db import models
 
+from apps.accounts.models.base import AuditSoftDeleteModel
 
-class BackgroundJob(models.Model):
+
+class BackgroundJob(AuditSoftDeleteModel):
     STATUS_PENDING = 'pending'
     STATUS_RUNNING = 'running'
     STATUS_SUCCESS = 'success'
@@ -30,8 +32,6 @@ class BackgroundJob(models.Model):
     execution_ms = models.PositiveIntegerField(null=True, blank=True)
     last_retry_at = models.DateTimeField(null=True, blank=True)
     triggered_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']

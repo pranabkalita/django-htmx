@@ -7,7 +7,7 @@ from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils.html import format_html
 
-from apps.accounts.models import BackgroundJob, EmailVerificationToken, PasswordResetToken, SecurityEvent, TwoFactorSettings, User
+from apps.accounts.models import AuditActivity, BackgroundJob, EmailVerificationToken, PasswordResetToken, SecurityEvent, TwoFactorSettings, User
 from apps.accounts.services.job_service import retry_background_job
 
 
@@ -139,11 +139,25 @@ class SecurityEventAdmin(admin.ModelAdmin):
         return False
 
 
+@admin.register(AuditActivity)
+class AuditActivityAdmin(admin.ModelAdmin):
+    list_display = ('action', 'actor', 'entity_type', 'entity_id', 'ip_address', 'created_at')
+    list_filter = ('action', 'created_at')
+    search_fields = ('action', 'actor__email', 'entity_type', 'entity_id', 'ip_address')
+    ordering = ('-created_at',)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(EmailVerificationToken)
 class EmailVerificationTokenAdmin(admin.ModelAdmin):
-    list_display = ('user', 'token', 'expires_at', 'used_at')
+    list_display = ('user', 'expires_at', 'used_at')
     list_filter = ('expires_at', 'used_at')
-    search_fields = ('user__email', 'token')
+    search_fields = ('user__email',)
     ordering = ('-expires_at',)
 
     def has_add_permission(self, request):
@@ -156,9 +170,9 @@ class EmailVerificationTokenAdmin(admin.ModelAdmin):
 
 @admin.register(PasswordResetToken)
 class PasswordResetTokenAdmin(admin.ModelAdmin):
-    list_display = ('user', 'token', 'expires_at', 'used_at')
+    list_display = ('user', 'expires_at', 'used_at')
     list_filter = ('expires_at', 'used_at')
-    search_fields = ('user__email', 'token')
+    search_fields = ('user__email',)
     ordering = ('-expires_at',)
 
     def has_add_permission(self, request):
@@ -176,6 +190,7 @@ class BackgroundJobAdmin(admin.ModelAdmin):
         'task_name',
         'status',
         'queue_name',
+        'payload_summary',
         'execution_ms',
         'retries',
         'triggered_by',
@@ -191,7 +206,7 @@ class BackgroundJobAdmin(admin.ModelAdmin):
         'queue_name',
         'status',
         'retries',
-        'payload',
+        'payload_summary',
         'result_text',
         'failure_reason',
         'started_at',
@@ -203,6 +218,14 @@ class BackgroundJobAdmin(admin.ModelAdmin):
         'updated_at',
     )
     actions = ('retry_failed_jobs', 'retry_pending_jobs')
+
+    @admin.display(description='Payload')
+    def payload_summary(self, obj):
+        payload = obj.payload or {}
+        recipients = payload.get('recipients') or []
+        recipient_count = len(recipients)
+        first_recipient = recipients[0] if recipient_count else 'n/a'
+        return f'recipients={recipient_count}, first={first_recipient}'
 
     def get_urls(self):
         urls = super().get_urls()

@@ -5,11 +5,22 @@ from unittest.mock import patch
 from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sessions.models import Session
 from django.test import TestCase
+from django.test import override_settings
 from django.utils import timezone
 
-from apps.accounts.models import BackgroundJob, EmailVerificationToken, PasswordResetToken, User
+from apps.accounts.models import AuditActivity, BackgroundJob, EmailVerificationToken, PasswordResetToken, SecurityEvent, User
 from apps.accounts.services import job_service, session_service
-from apps.accounts.services.auth_service import authenticate_user, build_email_verification, build_password_reset
+from apps.accounts.services.auth_service import (
+    authenticate_user,
+    build_email_verification,
+    build_password_reset,
+    clear_login_failures,
+    get_login_lock_seconds,
+    purge_expired_auth_tokens,
+    register_login_failure,
+    record_security_event,
+)
+from apps.accounts.services.user_service import deactivate_user
 
 
 def create_session_for_user(user_id, *, expire_in_seconds=3600):
@@ -44,6 +55,8 @@ class AuthServiceTokenTests(TestCase):
         old.refresh_from_db()
         self.assertIsNotNone(old.used_at)
         self.assertNotEqual(old.token, new.token)
+        self.assertNotEqual(new.token, new.raw_token)
+        self.assertEqual(len(new.token), 64)
         self.assertTrue(new.used_at is None)
 
     def test_build_password_reset_rotates_previous_active_tokens(self):
@@ -58,6 +71,8 @@ class AuthServiceTokenTests(TestCase):
         old.refresh_from_db()
         self.assertIsNotNone(old.used_at)
         self.assertNotEqual(old.token, new.token)
+        self.assertNotEqual(new.token, new.raw_token)
+        self.assertEqual(len(new.token), 64)
         self.assertTrue(new.used_at is None)
 
 
@@ -211,3 +226,114 @@ class JobServiceStatusTests(TestCase):
         self.assertEqual(target.status, BackgroundJob.STATUS_RUNNING)
         self.assertEqual(other.status, BackgroundJob.STATUS_FAILED)
         self.assertEqual(other.failure_reason, 'boom')
+
+
+class LoginLockoutServiceTests(TestCase):
+    @override_settings(
+        LOGIN_FAILURE_THRESHOLD=2,
+        LOGIN_FAILURE_BASE_LOCK_SECONDS=60,
+        LOGIN_FAILURE_MAX_LOCK_SECONDS=60,
+        LOGIN_FAILURE_WINDOW_SECONDS=300,
+    )
+    def test_register_login_failure_sets_lock_after_threshold(self):
+        email = 'lock@example.com'
+        clear_login_failures(email)
+
+        self.assertEqual(register_login_failure(email), 0)
+        self.assertEqual(register_login_failure(email), 60)
+        self.assertGreater(get_login_lock_seconds(email), 0)
+
+    @override_settings(
+        LOGIN_FAILURE_THRESHOLD=2,
+        LOGIN_FAILURE_BASE_LOCK_SECONDS=60,
+        LOGIN_FAILURE_MAX_LOCK_SECONDS=60,
+        LOGIN_FAILURE_WINDOW_SECONDS=300,
+    )
+    def test_clear_login_failures_removes_lock(self):
+        email = 'lock-clear@example.com'
+        clear_login_failures(email)
+        register_login_failure(email)
+        register_login_failure(email)
+
+        clear_login_failures(email)
+        self.assertEqual(get_login_lock_seconds(email), 0)
+
+
+class AuthTokenCleanupServiceTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email='cleanup@example.com',
+            first_name='Cleanup',
+            last_name='User',
+            password='StrongPass123!',
+            is_email_verified=True,
+        )
+
+    def test_purge_expired_auth_tokens_removes_expired_and_used(self):
+        EmailVerificationToken.objects.create(
+            user=self.user,
+            token='a' * 64,
+            expires_at=timezone.now() - timedelta(hours=1),
+        )
+        PasswordResetToken.objects.create(
+            user=self.user,
+            token='b' * 64,
+            expires_at=timezone.now() + timedelta(hours=1),
+            used_at=timezone.now(),
+        )
+
+        summary = purge_expired_auth_tokens()
+
+        self.assertGreaterEqual(summary['email_verification_deleted'], 1)
+        self.assertGreaterEqual(summary['password_reset_deleted'], 1)
+        self.assertEqual(EmailVerificationToken.objects.count(), 0)
+        self.assertEqual(PasswordResetToken.objects.count(), 0)
+
+
+class AuditAndSoftDeleteServiceTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email='audit-soft-delete@example.com',
+            first_name='Audit',
+            last_name='Subject',
+            password='StrongPass123!',
+            is_email_verified=True,
+        )
+
+    def test_soft_deleted_tokens_are_hidden_by_default_and_restorable(self):
+        token = EmailVerificationToken.objects.create(
+            user=self.user,
+            token='c' * 64,
+            expires_at=timezone.now() + timedelta(hours=2),
+            created_by=self.user,
+        )
+        token.soft_delete(deleted_by=self.user)
+
+        self.assertFalse(EmailVerificationToken.objects.filter(id=token.id).exists())
+        self.assertTrue(EmailVerificationToken.all_objects.filter(id=token.id, is_deleted=True).exists())
+
+        token.refresh_from_db(from_queryset=EmailVerificationToken.all_objects)
+        token.restore()
+        self.assertTrue(EmailVerificationToken.objects.filter(id=token.id, is_deleted=False).exists())
+
+    def test_record_security_event_writes_central_audit_activity(self):
+        record_security_event(event_type='login_success', user=self.user, ip_address='203.0.113.4')
+
+        self.assertTrue(SecurityEvent.objects.filter(user=self.user, event_type='login_success').exists())
+        self.assertTrue(
+            AuditActivity.objects.filter(
+                actor=self.user,
+                action='login_success',
+                metadata__source='security_event',
+            ).exists()
+        )
+
+    def test_deactivate_user_soft_deletes_and_logs_activity(self):
+        deactivate_user(self.user, actor=self.user)
+        self.user.refresh_from_db(from_queryset=User.objects.with_deleted())
+
+        self.assertFalse(self.user.is_active)
+        self.assertTrue(self.user.is_deleted)
+        self.assertIsNotNone(self.user.deleted_at)
+        self.assertEqual(self.user.deleted_by_id, self.user.id)
+        self.assertTrue(AuditActivity.objects.filter(action='user_deactivated', actor=self.user).exists())

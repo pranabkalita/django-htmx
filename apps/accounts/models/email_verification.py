@@ -4,12 +4,19 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from apps.accounts.models.base import AuditSoftDeleteModel
 
-class EmailVerificationToken(models.Model):
+
+class EmailVerificationToken(AuditSoftDeleteModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     token = models.CharField(max_length=128, unique=True)
     expires_at = models.DateTimeField()
     used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['used_at', 'expires_at'], name='accounts_evt_used_exp_idx'),
+        ]
 
     def __str__(self):
         return f'EmailVerificationToken({self.user_id})'
@@ -19,11 +26,16 @@ class EmailVerificationToken(models.Model):
         return timezone.now() + timedelta(hours=24)
 
 
-class PasswordResetToken(models.Model):
+class PasswordResetToken(AuditSoftDeleteModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     token = models.CharField(max_length=128, unique=True)
     expires_at = models.DateTimeField()
     used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['used_at', 'expires_at'], name='accounts_prt_used_exp_idx'),
+        ]
 
     def __str__(self):
         return f'PasswordResetToken({self.user_id})'

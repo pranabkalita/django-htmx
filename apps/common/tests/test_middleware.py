@@ -14,4 +14,7 @@ class MiddlewareBehaviorTests(TestCase):
         self.assertEqual(response.headers.get('X-Content-Type-Options'), 'nosniff')
         self.assertEqual(response.headers.get('Referrer-Policy'), 'strict-origin-when-cross-origin')
         self.assertEqual(response.headers.get('Permissions-Policy'), 'camera=(), microphone=(), geolocation=()')
-        self.assertIn("default-src 'self'", response.headers.get('Content-Security-Policy', ''))
+        csp = response.headers.get('Content-Security-Policy', '')
+        self.assertIn("default-src 'self'", csp)
+        self.assertIn("style-src 'self'", csp)
+        self.assertNotIn('unsafe-inline', csp)

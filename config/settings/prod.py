@@ -1,6 +1,16 @@
 from .base import *
+import environ
+
+env = environ.Env()
 
 DEBUG = False
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': env('REDIS_URL', default='redis://127.0.0.1:6379/1'),
+    }
+}
 STORAGES = {
 	'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
 	'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},

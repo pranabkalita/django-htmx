@@ -5,7 +5,7 @@ from django.test import RequestFactory
 from django.test import TestCase
 from django.urls import reverse
 
-from apps.accounts.models import BackgroundJob, User
+from apps.accounts.models import BackgroundJob, EmailVerificationToken, PasswordResetToken, User
 
 
 class AdminAccessTests(TestCase):
@@ -154,6 +154,34 @@ class BackgroundJobAdminActionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'not eligible for retry')
         mock_retry.assert_not_called()
+
+
+class AdminSensitiveDataExposureTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.superuser = User.objects.create_superuser(
+            email='security-admin@example.com',
+            first_name='Security',
+            last_name='Admin',
+            password='StrongPass123!',
+        )
+
+    def test_token_admins_do_not_expose_raw_token_fields(self):
+        email_verification_admin = admin.site._registry[EmailVerificationToken]
+        password_reset_admin = admin.site._registry[PasswordResetToken]
+
+        self.assertNotIn('token', email_verification_admin.list_display)
+        self.assertNotIn('token', email_verification_admin.search_fields)
+        self.assertNotIn('token', password_reset_admin.list_display)
+        self.assertNotIn('token', password_reset_admin.search_fields)
+
+    def test_background_job_admin_hides_raw_payload_field(self):
+        request = self.factory.get(reverse('admin:accounts_backgroundjob_changelist'))
+        request.user = self.superuser
+        background_job_admin = admin.site._registry[BackgroundJob]
+
+        self.assertIn('payload_summary', background_job_admin.readonly_fields)
+        self.assertNotIn('payload', background_job_admin.readonly_fields)
 
 
 class UserAdminDeletionSafetyTests(TestCase):
